@@ -49,6 +49,36 @@ def _print_result(result, title: str = "IncidentX analysis") -> None:
             )
             if change.rollback:
                 print(f"Rollback: {change.rollback}")
+        reasoning = report.llm_reasoning
+        if reasoning:
+            print("LLM reasoning:")
+            if reasoning.summary:
+                print(f"  Assessment: {reasoning.summary}")
+            if reasoning.causal_chain:
+                print("  Causal chain:")
+                for index, step in enumerate(reasoning.causal_chain, 1):
+                    print(f"    {index}. {step}")
+            if reasoning.hypotheses:
+                print("  Hypotheses:")
+                for index, hypothesis in enumerate(reasoning.hypotheses, 1):
+                    print(
+                        f"    H{index} {hypothesis.hypothesis} "
+                        f"({hypothesis.confidence:.0%})"
+                    )
+                    for evidence in hypothesis.supporting_evidence[:3]:
+                        print(f"      evidence: {evidence}")
+                    if hypothesis.validation:
+                        print(f"      validate: {hypothesis.validation}")
+            if reasoning.uncertainties:
+                print("  Uncertainties:")
+                for uncertainty in reasoning.uncertainties:
+                    print(f"    - {uncertainty}")
+            if reasoning.recommended_checks:
+                print("  Recommended checks:")
+                for check in reasoning.recommended_checks:
+                    print(f"    - {check}")
+        elif report.llm_explanation:
+            print(f"LLM analysis: {report.llm_explanation}")
         print(f"Severity: {severity.justification}")
         if severity.boosted:
             print(
@@ -145,7 +175,7 @@ def command_llm_check(args: argparse.Namespace) -> int:
     if reply is None:
         print("LLM request failed. Check the key, model name, and network.")
         return 1
-    print(f"LLM response: {reply}")
+    print(f"LLM response: {reply} (active model: {llm.active_model})")
     return 0
 
 

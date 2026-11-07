@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -147,11 +148,12 @@ class IncidentXPipeline:
             )
             similar = self.memory.find_similar(cluster)
 
-            llm_explanation = ""
+            llm_reasoning = None
             if use_llm and self.llm.available:
-                llm_explanation = self.llm.explain_incident(
-                    self._llm_context(cluster, severity, root_cause)
-                ) or ""
+                llm_reasoning = self.llm.reason_incident(
+                    self._llm_context(cluster, severity, root_cause, remediation)
+                )
+            llm_explanation = llm_reasoning.summary if llm_reasoning else ""
 
             report = self.reporter.build(
                 cluster=cluster,
@@ -160,7 +162,8 @@ class IncidentXPipeline:
                 remediation=remediation,
                 similar=similar,
                 llm_explanation=llm_explanation,
-                llm_used=bool(llm_explanation),
+                llm_reasoning=llm_reasoning,
+                llm_used=bool(llm_reasoning),
             )
             reports.append(report)
 
@@ -207,42 +210,85 @@ class IncidentXPipeline:
         cluster,
         severity,
         root_cause,
+        remediation,
     ) -> Dict[str, Any]:
         change = cluster.suspected_change
+        category_counts = Counter(error.category for error in cluster.errors)
         return {
             "incident_id": cluster.id,
             "time_range_local": f"{cluster.start} to {cluster.end}",
+            "duration_minutes": round(cluster.duration_minutes, 1),
+            "errors_count": len(cluster.errors),
+            "error_rate_per_minute": round(cluster.error_rate_per_minute, 1),
             "affected_services": cluster.affected_services,
-            "severity": {"level": severity.level, "score": severity.score},
-            "business_window": severity.revenue_window,
-            "root_cause": {
-                "category": root_cause.primary_category,
-                "service": root_cause.primary_service,
-                "confidence": root_cause.confidence,
-                "reasoning": root_cause.reasoning,
+            "business_context": self._business_profile(),
+            "deterministic_analysis": {
+                "severity": {
+                    "level": severity.level,
+                    "score": severity.score,
+                    "baseline_level": severity.baseline_level,
+                    "baseline_score": severity.baseline_score,
+                    "business_window": severity.revenue_window,
+                    "justification": severity.justification,
+                },
+                "root_cause": {
+                    "category": root_cause.primary_category,
+                    "service": root_cause.primary_service,
+                    "confidence": root_cause.confidence,
+                    "reasoning": root_cause.reasoning,
+                },
+                "change_link": (
+                    {
+                        "id": change.id,
+                        "time": str(change.timestamp),
+                        "type": change.type,
+                        "service": change.service,
+                        "description": change.description,
+                        "author": change.author,
+                        "rollback": change.rollback,
+                        "confidence": root_cause.change_confidence,
+                        "reason": root_cause.change_reason,
+                    }
+                    if change
+                    else None
+                ),
             },
-            "suspected_change": (
-                {
-                    "id": change.id,
-                    "time": str(change.timestamp),
-                    "type": change.type,
-                    "service": change.service,
-                    "description": change.description,
-                    "rollback": change.rollback,
-                }
-                if change
-                else None
-            ),
+            "error_categories": dict(category_counts.most_common()),
             "top_errors": [
                 {
                     "time": str(error.timestamp),
                     "service": error.service,
                     "level": error.log_entry.level,
                     "category": error.category,
+                    "source": error.source,
+                    "classification_reason": error.reason,
                     "message": error.log_entry.message,
                 }
-                for error in cluster.errors[:10]
+                for error in cluster.errors[:12]
             ],
+            "similar_incidents": [
+                {
+                    "id": similar.incident_id,
+                    "similarity": similar.similarity,
+                    "severity": similar.severity,
+                    "title": similar.title,
+                    "root_cause": similar.root_cause,
+                    "resolution": similar.resolution,
+                }
+                for similar in cluster.similar_incidents[:3]
+            ],
+            "proposed_remediation": {
+                phase: [
+                    {
+                        "action": action.action,
+                        "command": action.command,
+                        "requires_approval": action.requires_approval,
+                        "automated": action.automated,
+                    }
+                    for action in remediation.by_phase(phase)
+                ]
+                for phase in ("immediate", "investigation", "resolution")
+            },
         }
 
     def write_reports(

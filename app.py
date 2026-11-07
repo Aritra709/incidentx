@@ -126,6 +126,51 @@ def metric_row(report: IncidentReport) -> None:
     columns[4].metric("Linked change", "Yes" if change else "No")
 
 
+def render_llm_reasoning(report: IncidentReport) -> None:
+    reasoning = report.llm_reasoning
+    if not reasoning:
+        if report.llm_explanation:
+            st.info(report.llm_explanation, icon=None)
+        return
+    st.subheader("LLM reasoning")
+    if reasoning.summary:
+        st.info(reasoning.summary, icon=None)
+    left, right = st.columns([0.9, 1.1])
+    with left:
+        if reasoning.causal_chain:
+            st.markdown("**Causal chain**")
+            for index, step in enumerate(reasoning.causal_chain, 1):
+                st.markdown(f"{index}. {step}")
+        if reasoning.uncertainties:
+            st.markdown("**Uncertainties**")
+            for uncertainty in reasoning.uncertainties:
+                st.markdown(f"- {uncertainty}")
+    with right:
+        if reasoning.hypotheses:
+            st.markdown("**Hypotheses**")
+            for index, hypothesis in enumerate(reasoning.hypotheses, 1):
+                with st.expander(
+                    f"H{index} - {hypothesis.hypothesis} "
+                    f"({hypothesis.confidence:.0%})"
+                ):
+                    if hypothesis.supporting_evidence:
+                        st.markdown("**Supporting evidence**")
+                        for evidence in hypothesis.supporting_evidence:
+                            st.markdown(f"- {evidence}")
+                    if hypothesis.conflicting_evidence:
+                        st.markdown("**Conflicting evidence**")
+                        for evidence in hypothesis.conflicting_evidence:
+                            st.markdown(f"- {evidence}")
+                    if hypothesis.validation:
+                        st.markdown(f"**Validation:** {hypothesis.validation}")
+    if reasoning.recommended_checks:
+        st.markdown("**Recommended checks**")
+        for check in reasoning.recommended_checks:
+            st.markdown(f"- [ ] {check}")
+    if reasoning.operator_briefing:
+        st.caption(reasoning.operator_briefing)
+
+
 def render_root_cause(pipeline: IncidentXPipeline, report: IncidentReport) -> None:
     root = report.root_cause
     change = report.cluster.suspected_change
@@ -148,8 +193,6 @@ def render_root_cause(pipeline: IncidentXPipeline, report: IncidentReport) -> No
                 ),
                 unsafe_allow_html=True,
             )
-        if report.llm_explanation:
-            st.info(report.llm_explanation, icon=None)
 
     with right:
         st.subheader("Suspected change")
@@ -176,6 +219,8 @@ def render_root_cause(pipeline: IncidentXPipeline, report: IncidentReport) -> No
             if change.rollback:
                 st.markdown("**Rollback path**")
                 st.code(change.rollback, language="bash")
+
+    render_llm_reasoning(report)
 
     st.subheader("Why this severity?")
     factors = pd.DataFrame(

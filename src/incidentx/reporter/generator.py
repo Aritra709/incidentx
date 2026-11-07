@@ -9,6 +9,7 @@ from ..knowledge_base.loader import KnowledgeBase
 from ..models import (
     IncidentCluster,
     IncidentReport,
+    LLMReasoning,
     PlainEnglishSummary,
     RemediationPlan,
     RootCauseAnalysis,
@@ -43,6 +44,7 @@ class IncidentReporter:
         remediation: RemediationPlan,
         similar: Optional[List[SimilarIncident]] = None,
         llm_explanation: str = "",
+        llm_reasoning: Optional[LLMReasoning] = None,
         llm_used: bool = False,
     ) -> IncidentReport:
         similar = similar or []
@@ -60,6 +62,7 @@ class IncidentReporter:
             plain_english=plain,
             customer_status_update=status_update,
             llm_explanation=llm_explanation,
+            llm_reasoning=llm_reasoning,
             llm_used=llm_used,
         )
         report.engineer_markdown = self._engineer_markdown(report)
@@ -280,7 +283,57 @@ class IncidentReporter:
                 )
             if change.rollback:
                 lines.append(f"- Rollback path: `{change.rollback}`")
-        if report.llm_explanation:
+        if report.llm_reasoning:
+            reasoning = report.llm_reasoning
+            lines.append("")
+            lines.append("## LLM Reasoning")
+            lines.append("")
+            if reasoning.summary:
+                lines.append(f"**Assessment:** {reasoning.summary}")
+                lines.append("")
+            if reasoning.causal_chain:
+                lines.append("### Causal Chain")
+                lines.append("")
+                for index, step in enumerate(reasoning.causal_chain, 1):
+                    lines.append(f"{index}. {step}")
+                lines.append("")
+            if reasoning.hypotheses:
+                lines.append("### Hypotheses")
+                lines.append("")
+                for index, hypothesis in enumerate(reasoning.hypotheses, 1):
+                    lines.append(
+                        f"**H{index} - {hypothesis.hypothesis}** "
+                        f"(confidence {hypothesis.confidence:.0%})"
+                    )
+                    if hypothesis.supporting_evidence:
+                        lines.append("- Supporting evidence:")
+                        for evidence in hypothesis.supporting_evidence:
+                            lines.append(f"  - {evidence}")
+                    if hypothesis.conflicting_evidence:
+                        lines.append("- Conflicting evidence:")
+                        for evidence in hypothesis.conflicting_evidence:
+                            lines.append(f"  - {evidence}")
+                    if hypothesis.validation:
+                        lines.append(f"- Validation: {hypothesis.validation}")
+                    lines.append("")
+            if reasoning.uncertainties:
+                lines.append("### Uncertainties")
+                lines.append("")
+                for uncertainty in reasoning.uncertainties:
+                    lines.append(f"- {uncertainty}")
+                lines.append("")
+            if reasoning.recommended_checks:
+                lines.append("### Recommended Checks")
+                lines.append("")
+                for check in reasoning.recommended_checks:
+                    lines.append(f"- [ ] {check}")
+                lines.append("")
+            if reasoning.operator_briefing:
+                lines.append("### Operator Briefing")
+                lines.append("")
+                lines.append(reasoning.operator_briefing)
+                lines.append("")
+        elif report.llm_explanation:
             lines.append("")
             lines.append("**LLM analysis**")
             lines.append("")
@@ -495,6 +548,65 @@ class IncidentReporter:
             if change.rollback:
                 change_html += f"<p>Rollback: <code>{escape(change.rollback)}</code></p>"
 
+        reasoning = report.llm_reasoning
+        reasoning_html = ""
+        if reasoning:
+            parts = ["<section><h2>LLM reasoning</h2>"]
+            if reasoning.summary:
+                parts.append(
+                    f"<p><strong>Assessment:</strong> {escape(reasoning.summary)}</p>"
+                )
+            if reasoning.causal_chain:
+                steps = "".join(
+                    f"<li>{escape(step)}</li>" for step in reasoning.causal_chain
+                )
+                parts.append(f"<h3>Causal chain</h3><ol>{steps}</ol>")
+            if reasoning.hypotheses:
+                parts.append("<h3>Hypotheses</h3>")
+                for index, hypothesis in enumerate(reasoning.hypotheses, 1):
+                    supporting = "".join(
+                        f"<li>{escape(item)}</li>"
+                        for item in hypothesis.supporting_evidence
+                    )
+                    conflicting = "".join(
+                        f"<li>{escape(item)}</li>"
+                        for item in hypothesis.conflicting_evidence
+                    )
+                    parts.append(
+                        "<div class='metric' style='margin:10px 0'>"
+                        f"<strong>H{index} - {escape(hypothesis.hypothesis)}</strong> "
+                        f"<span class='muted'>(confidence {hypothesis.confidence:.0%})</span>"
+                        + (f"<p>Supporting evidence:</p><ul>{supporting}</ul>" if supporting else "")
+                        + (f"<p>Conflicting evidence:</p><ul>{conflicting}</ul>" if conflicting else "")
+                        + (
+                            f"<p class='muted'>Validation: {escape(hypothesis.validation)}</p>"
+                            if hypothesis.validation
+                            else ""
+                        )
+                        + "</div>"
+                    )
+            if reasoning.uncertainties:
+                items = "".join(
+                    f"<li>{escape(item)}</li>" for item in reasoning.uncertainties
+                )
+                parts.append(f"<h3>Uncertainties</h3><ul>{items}</ul>")
+            if reasoning.recommended_checks:
+                items = "".join(
+                    f"<li>{escape(item)}</li>" for item in reasoning.recommended_checks
+                )
+                parts.append(f"<h3>Recommended checks</h3><ul>{items}</ul>")
+            if reasoning.operator_briefing:
+                parts.append(
+                    f"<h3>Operator briefing</h3><p>{escape(reasoning.operator_briefing)}</p>"
+                )
+            parts.append("</section>")
+            reasoning_html = "".join(parts)
+        elif report.llm_explanation:
+            reasoning_html = (
+                "<section><h2>LLM analysis</h2>"
+                f"<p>{escape(report.llm_explanation)}</p></section>"
+            )
+
         return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -562,6 +674,8 @@ class IncidentReporter:
     <p>{escape(report.root_cause.reasoning)}</p>
     {change_html}
   </section>
+
+  {reasoning_html}
 
   <section>
     <h2>Business-aware severity</h2>

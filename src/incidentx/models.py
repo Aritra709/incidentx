@@ -135,6 +135,24 @@ class RootCauseAnalysis(BaseModel):
     contributing_services: List[str] = Field(default_factory=list)
 
 
+class LLMHypothesis(BaseModel):
+    hypothesis: str
+    confidence: float = 0.0
+    supporting_evidence: List[str] = Field(default_factory=list)
+    conflicting_evidence: List[str] = Field(default_factory=list)
+    validation: str = ""
+
+
+class LLMReasoning(BaseModel):
+    summary: str = ""
+    causal_chain: List[str] = Field(default_factory=list)
+    hypotheses: List[LLMHypothesis] = Field(default_factory=list)
+    uncertainties: List[str] = Field(default_factory=list)
+    recommended_checks: List[str] = Field(default_factory=list)
+    operator_briefing: str = ""
+
+
+
 class IncidentCluster(BaseModel):
     id: str
     errors: List[ErrorEvent] = Field(default_factory=list)
@@ -220,6 +238,7 @@ class IncidentReport(BaseModel):
     customer_status_update: str = ""
     engineer_markdown: str = ""
     llm_explanation: str = ""
+    llm_reasoning: Optional[LLMReasoning] = None
     generated_at: datetime = Field(default_factory=datetime.now)
     llm_used: bool = False
 

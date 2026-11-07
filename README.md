@@ -20,7 +20,7 @@ Built for Agentic Chase PS1 — *IncidentX: Autonomous IT Incident Response Agen
 4. **Approval-gated fixes** — the agent proposes a rollback with a dry-run, but a human must approve it. Commands are never executed.
 5. **Incident memory** — resolved incidents are matched by category, signature, and services: *"this looks like the one from last week; this fix worked."*
 
-Rules are the fast path. An optional Gemini or OpenAI-compatible LLM reviews unknown errors and adds a grounded explanation. Without credentials, everything still works deterministically.
+Rules are the fast path. An optional Gemini or OpenAI-compatible LLM reviews unknown errors and adds an evidence-grounded reasoning brief: summary, causal chain, ranked hypotheses, uncertainties, and read-only checks. Without credentials, everything still works deterministically.
 
 ## Demo story
 
@@ -62,7 +62,7 @@ streamlit run app.py
 
 Opens at `http://localhost:8501`. The demo analysis runs automatically, then you can upload logs and a changelog from the sidebar. Four tabs cover the whole response:
 
-- **Engineer view** — severity banner, timeline with the change marker, service health, root-cause reasoning, incident memory, Markdown/JSON/HTML downloads.
+- **Engineer view** — severity banner, timeline with the change marker, service health, root-cause reasoning, structured LLM reasoning, incident memory, Markdown/JSON/HTML downloads.
 - **Plain English** — what happened, who is affected, what happens next, and a copy-ready customer status update.
 - **Cascade graph** — the service dependency graph with the failure path highlighted, blast radius, and Graphviz DOT export.
 - **Remediation & approvals** — immediate/short-term/prevention actions, command preview, simulated dry-run and approval gates, and "mark resolved" into incident memory.
@@ -123,6 +123,8 @@ $env:INCIDENTX_LLM_MODEL = "gpt-4o-mini"
 
 If both keys are present, Gemini wins by default. Set `INCIDENTX_LLM_PROVIDER=gemini` or `INCIDENTX_LLM_PROVIDER=openai` to choose explicitly. Set `INCIDENTX_LLM_ENABLED=false` to force rules-only mode. If an LLM request fails, that run automatically finishes on rules alone instead of retrying the endpoint for every unknown error. Free-tier Gemini keys can have zero quota for Pro models; use a Flash model or enable billing for Pro.
 
+Gemini requests fall back across `GEMINI_FALLBACK_MODELS` (default `gemini-3.5-flash,gemini-flash-lite-latest`) when the primary model is rate-limited or unavailable, and `incidentx llm-check` prints the active model. Reports include the LLM's structured reasoning, not just a paragraph: causal chain, ranked hypotheses with evidence for and against, uncertainties, recommended read-only checks, and an operator briefing.
+
 ## Pipeline
 
 ```text
@@ -161,14 +163,14 @@ ruff check src app.py tests scripts
 python scripts/benchmark.py --lines 10000 --runs 5 --api
 ```
 
-58 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, the API (including concurrent analyze requests), Gemini/OpenAI-compatible LLM paths, and the Streamlit UI dry-run/approval flow.
+66 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, the API (including concurrent analyze requests), Gemini/OpenAI-compatible LLM paths, structured reasoning and model fallback, and the Streamlit UI dry-run/approval flow.
 
 Local benchmark: a 10,000-line mixed log runs end-to-end in about 0.99s median; the demo analyze endpoint has a p95 of 27.1ms. Methodology and full results are in [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Design notes
 
 - **Deterministic core.** Regex rules, causal ordering, a service graph, and a weighted severity model. No network call is required.
-- **Grounded LLM.** The optional LLM only reviews errors the rules cannot classify; it must return one of the known categories or the result is discarded.
+- **Grounded LLM.** The optional LLM classifies only errors the rules cannot, and its reasoning brief is built from supplied facts with ranked hypotheses, disconfirming evidence, and explicit uncertainties; a rate-limited model falls back automatically.
 - **Explainable severity.** Every score includes factor breakdowns, the baseline without business context, and a human-readable justification.
 - **Duplicate-safe.** Errors are merged by signature and trace, and incidents are clustered only when services are causally connected within a time window.
 - **Memory that does not cheat.** Incidents never match themselves; stored resolutions feed similar-incident hints.

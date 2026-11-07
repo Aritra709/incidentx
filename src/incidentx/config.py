@@ -66,6 +66,13 @@ def llm_settings() -> Dict[str, Any]:
             or os.getenv("INCIDENTX_LLM_MODEL", "").strip()
             or "gemini-3.6-flash"
         )
+        fallback_raw = os.getenv("GEMINI_FALLBACK_MODELS")
+        if fallback_raw is None:
+            fallback_models = ["gemini-3.5-flash", "gemini-flash-lite-latest"]
+        else:
+            fallback_models = [
+                name.strip() for name in fallback_raw.split(",") if name.strip()
+            ]
     else:
         api_key = openai_key
         base_url = os.getenv(
@@ -76,6 +83,7 @@ def llm_settings() -> Dict[str, Any]:
             or os.getenv("OPENAI_MODEL", "").strip()
             or "gpt-4o-mini"
         )
+        fallback_models = []
 
     local_endpoint = provider == "openai" and (
         "localhost" in base_url or "127.0.0.1" in base_url
@@ -93,5 +101,6 @@ def llm_settings() -> Dict[str, Any]:
         "api_key": api_key,
         "base_url": base_url,
         "model": model,
+        "fallback_models": fallback_models,
         "timeout_seconds": float(os.getenv("INCIDENTX_LLM_TIMEOUT", "20")),
     }

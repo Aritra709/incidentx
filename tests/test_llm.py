@@ -52,6 +52,101 @@ def test_disabled_reasoner_returns_none():
     reasoner = make_reasoner(enabled=False)
     assert reasoner.classify_error("x", "ERROR", "svc", ["API_TIMEOUT"]) is None
     assert reasoner.explain_incident({"incident": "x"}) is None
+    assert reasoner.reason_incident({"incident": "x"}) is None
+
+
+def test_reason_incident_parses_structured_json(monkeypatch):
+    reasoner = make_reasoner()
+    monkeypatch.setattr(
+        reasoner,
+        "_chat",
+        lambda *args, **kwargs: (
+            "```json\n"
+            '{"summary":"Pool exhaustion followed the deploy.",'
+            '"causal_chain":["Pool 40 -> 8 at 19:52","Checkout traffic rose at 20:00",'
+            '"Requests queued and checkout failed"],'
+            '"hypotheses":[{"hypothesis":"Pool shrink caused exhaustion",'
+            '"confidence":1.4,"supporting_evidence":["89% pool utilization"],'
+            '"conflicting_evidence":["No memory pressure observed"],'
+            '"validation":"Compare pool waiters before and after rollback"}],'
+            '"uncertainties":["Exact checkout concurrency is unknown"],'
+            '"recommended_checks":["Read pool wait count"],'
+            '"operator_briefing":"Rollback is the safest first validation."}\n'
+            "```"
+        ),
+    )
+    reasoning = reasoner.reason_incident({"incident": "x"})
+
+    assert reasoning is not None
+    assert reasoning.summary.startswith("Pool exhaustion")
+    assert reasoning.causal_chain[0] == "Pool 40 -> 8 at 19:52"
+    assert reasoning.hypotheses[0].confidence == 1.0
+    assert reasoning.hypotheses[0].supporting_evidence == ["89% pool utilization"]
+    assert reasoning.recommended_checks == ["Read pool wait count"]
+    assert reasoning.operator_briefing.startswith("Rollback")
+
+
+def test_reason_incident_adds_a_second_hypothesis_when_needed(monkeypatch):
+    reasoner = make_reasoner()
+    monkeypatch.setattr(
+        reasoner,
+        "_chat",
+        lambda *args, **kwargs: (
+            '{"summary":"Deploy likely caused it.",'
+            '"causal_chain":["Pool reduced"],'
+            '"hypotheses":[{"hypothesis":"Pool shrink","confidence":0.9,'
+            '"supporting_evidence":["89% utilization"],'
+            '"conflicting_evidence":[],"validation":"Check pool metrics"}],'
+            '"uncertainties":[],"recommended_checks":[],"operator_briefing":""}'
+        ),
+    )
+    context = {
+        "deterministic_analysis": {
+            "root_cause": {
+                "category": "CONNECTION_POOL_EXHAUSTED",
+                "service": "checkout-api",
+                "confidence": 0.89,
+            },
+            "change_link": {
+                "id": "chg-1",
+                "type": "deploy",
+                "reason": "Deploy happened 3 minutes before the first error.",
+            },
+        }
+    }
+    reasoning = reasoner.reason_incident(context)
+
+    assert reasoning is not None
+    assert len(reasoning.hypotheses) == 2
+    assert reasoning.hypotheses[1].confidence == 0.1
+    assert "correlated by timing" in reasoning.hypotheses[1].hypothesis
+
+
+def test_reason_incident_falls_back_to_text_and_deterministic_hypothesis(monkeypatch):
+    reasoner = make_reasoner()
+    monkeypatch.setattr(
+        reasoner,
+        "_chat",
+        lambda *args, **kwargs: "The pool was reduced, but evidence is incomplete.",
+    )
+    context = {
+        "deterministic_analysis": {
+            "root_cause": {
+                "category": "CONNECTION_POOL_EXHAUSTED",
+                "service": "checkout-api",
+                "confidence": 0.89,
+                "reasoning": "Pool utilization reached 89%.",
+            }
+        }
+    }
+    reasoning = reasoner.reason_incident(context)
+
+    assert reasoning is not None
+    assert reasoning.summary == "The pool was reduced, but evidence is incomplete."
+    assert reasoning.hypotheses
+    assert "CONNECTION_POOL_EXHAUSTED" in reasoning.hypotheses[0].hypothesis
+    assert reasoning.hypotheses[0].confidence == 0.89
+
 
 
 def test_classify_error_parses_fenced_json_and_clamps_confidence(monkeypatch):

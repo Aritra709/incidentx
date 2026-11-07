@@ -1,5 +1,6 @@
 import pytest
 
+from incidentx.models import LLMHypothesis, LLMReasoning
 from incidentx.pipeline.orchestrator import IncidentXPipeline
 
 
@@ -69,6 +70,50 @@ def test_result_reports_llm_off_when_request_disables_it(pipeline):
     pipeline.llm.enabled = True
     result = run_demo(pipeline)
     assert result.llm_available is False
+
+
+def test_pipeline_attaches_structured_llm_reasoning(pipeline, monkeypatch):
+    pipeline.llm.enabled = True
+    pipeline.llm._failed = False
+    reasoning = LLMReasoning(
+        summary="Pool exhaustion followed the deploy.",
+        causal_chain=["Pool 40 -> 8", "Checkout demand rose", "Requests queued"],
+        hypotheses=[
+            LLMHypothesis(
+                hypothesis="Pool shrink caused exhaustion",
+                confidence=0.91,
+                supporting_evidence=["89% pool utilization"],
+                conflicting_evidence=["No memory pressure observed"],
+                validation="Compare pool waiters before and after rollback",
+            )
+        ],
+        uncertainties=["Exact checkout concurrency is unknown"],
+        recommended_checks=["Read pool wait count"],
+        operator_briefing="Rollback is the safest first validation.",
+    )
+    monkeypatch.setattr(pipeline.llm, "reason_incident", lambda context: reasoning)
+    paths = IncidentXPipeline.demo_paths()
+
+    result = pipeline.analyze(
+        logs_path=paths["logs"],
+        changes_path=paths["changes"],
+        use_llm=True,
+    )
+    report = result.incidents[0]
+
+    assert result.llm_available is True
+    assert report.llm_used is True
+    assert report.llm_reasoning is not None
+    assert report.llm_reasoning.hypotheses[0].confidence == 0.91
+    assert report.llm_explanation == "Pool exhaustion followed the deploy."
+    assert "## LLM Reasoning" in report.engineer_markdown
+    assert "### Causal Chain" in report.engineer_markdown
+    assert "Rollback is the safest first validation." in report.engineer_markdown
+    document = pipeline.reporter.export_html(report)
+    assert "LLM reasoning" in document
+    assert "Causal chain" in document
+    assert '"llm_reasoning"' in pipeline.reporter.export_json(report)
+
 
 
 def test_html_export_escapes_untrusted_text(pipeline):
