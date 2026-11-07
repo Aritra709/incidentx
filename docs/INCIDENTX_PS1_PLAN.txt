@@ -1,0 +1,766 @@
+# IncidentX: Autonomous IT Incident Response Agent - Detailed Implementation Plan
+
+## 1. PROJECT OVERVIEW
+
+**Problem Statement:** PS1 - IncidentX: Autonomous IT Incident Response Agent
+**Goal:** Build an AI agent that analyzes system logs, identifies incidents, determines severity, and recommends remediation actions.
+**Approach:** Multi-stage pipeline with specialized tools for log ingestion, error detection, classification, severity assessment, and report generation.
+
+---
+
+## 2. SYSTEM ARCHITECTURE
+
+### 2.1 High-Level Pipeline
+```
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Log Input      │────▶│  Preprocessing   │────▶│  Error Detection │
+│  (TXT/JSON/CSV) │     │  & Parsing       │     │  & Classification│
+└─────────────────┘     └──────────────────┘     └────────┬─────────┘
+                                                          │
+                                                          ▼
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Incident       │◀────│  Severity        │◀────│  Root Cause      │
+│  Report Gen     │     │  Assessment      │     │  Correlation     │
+└─────────────────┘     └──────────────────┘     └──────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Knowledge Base │
+│  Retrieval      │
+└─────────────────┘
+```
+
+### 2.2 Core Components
+1. **Log Ingestion Module** - Parse TXT, JSON, CSV logs
+2. **Log Preprocessor** - Normalize, extract timestamps, service names, error messages
+3. **Error Detection & Classification** - Identify errors, categorize by type
+4. **Pattern Correlation Engine** - Correlate related log entries
+5. **Severity Assessment** - Assign Low/Medium/High/Critical
+6. **Knowledge Base** - Remediation recommendations
+7. **Incident Report Generator** - Structured output
+
+---
+
+## 3. DETAILED MODULE SPECIFICATIONS
+
+### 3.1 Log Ingestion Module (`log_ingestion/`)
+
+**Input Formats:**
+- **TXT**: Plain text logs (syslog, application logs)
+- **JSON**: Structured logs (ELK, Datadog, CloudWatch format)
+- **CSV**: Exported logs with headers
+
+**Parsing Strategy:**
+```
+TXT: Regex-based extraction (timestamp, level, service, message)
+JSON: Direct field mapping (timestamp, level, service, message, metadata)
+CSV: Header-based column mapping
+```
+
+**Output Schema:**
+```python
+LogEntry:
+  - raw_text: str
+  - timestamp: datetime
+  - level: Enum[DEBUG, INFO, WARN, ERROR, CRITICAL, FATAL]
+  - service: str
+  - message: str
+  - metadata: Dict[str, Any]
+  - source_file: str
+  - line_number: int
+```
+
+**Key Functions:**
+- `parse_file(file_path: Path) -> List[LogEntry]`
+- `parse_text(text: str, format: str) -> List[LogEntry]`
+- `detect_format(file_path: Path) -> LogFormat`
+
+### 3.2 Log Preprocessor (`preprocessor/`)
+
+**Responsibilities:**
+- Timestamp normalization (ISO 8601)
+- Service name standardization
+- Message cleaning (remove PII, normalize IDs)
+- Time-window segmentation
+- Deduplication
+
+**Key Functions:**
+- `normalize_timestamps(entries: List[LogEntry]) -> List[LogEntry]`
+- `standardize_services(entries: List[LogEntry], mapping: Dict) -> List[LogEntry]`
+- `segment_by_time_window(entries: List[LogEntry], window_minutes: int) -> List[List[LogEntry]]`
+- `deduplicate(entries: List[LogEntry]) -> List[LogEntry]`
+
+### 3.3 Error Detection & Classification (`classifier/`)
+
+**Error Categories:**
+```
+INFRASTRUCTURE:     DATABASE_CONNECTION, NETWORK_TIMEOUT, DISK_FULL, MEMORY_EXHAUSTION, CPU_THROTTLING
+APPLICATION:        NULL_POINTER, UNHANDLED_EXCEPTION, VALIDATION_ERROR, AUTH_FAILURE, RATE_LIMIT
+DEPENDENCY:         EXTERNAL_API_DOWN, THIRD_PARTY_TIMEOUT, MESSAGE_QUEUE_BACKUP
+CONFIGURATION:      MISSING_CONFIG, INVALID_CONFIG, FEATURE_FLAG_ERROR
+SECURITY:           UNAUTHORIZED_ACCESS, INJECTION_ATTEMPT, BRUTE_FORCE, CERTIFICATE_EXPIRED
+```
+
+**Detection Methods:**
+1. **Rule-based**: Regex patterns for known error signatures
+2. **ML-based**: Fine-tuned classifier for log level + message
+3. **Hybrid**: Rules first, ML for ambiguous cases
+
+**Key Functions:**
+- `detect_errors(entries: List[LogEntry]) -> List[ErrorEvent]`
+- `classify_error(message: str, level: str) -> ErrorCategory`
+- `extract_error_signature(message: str) -> str`
+
+**Output Schema:**
+```python
+ErrorEvent:
+  - log_entry: LogEntry
+  - category: ErrorCategory
+  - signature: str
+  - confidence: float
+  - matched_pattern: Optional[str]
+```
+
+### 3.4 Pattern Correlation Engine (`correlator/`)
+
+**Correlation Strategies:**
+1. **Temporal**: Errors within time window (default: 5 min)
+2. **Service-based**: Same service, related errors
+3. **Causal**: Known cause-effect patterns (DB down → API timeout)
+4. **Session/Trace ID**: Same request trace
+
+**Known Causal Patterns:**
+```
+DATABASE_CONNECTION_ERROR  ──▶  API_TIMEOUT, QUERY_FAILED, CONNECTION_POOL_EXHAUSTED
+NETWORK_TIMEOUT            ──▶  SERVICE_UNAVAILABLE, CIRCUIT_BREAKER_OPEN
+DISK_FULL                  ──▶  LOG_WRITE_FAILURE, CACHE_WRITE_FAILURE, BACKUP_FAILURE
+MEMORY_EXHAUSTION          ──▶  OOM_KILLER, GC_OVERHEAD, SERVICE_CRASH
+AUTH_FAILURE (spike)       ──▶  BRUTE_FORCE_DETECTED, ACCOUNT_LOCKOUT
+```
+
+**Key Functions:**
+- `correlate_errors(errors: List[ErrorEvent], window_minutes: int) -> List[IncidentCluster]`
+- `apply_causal_rules(clusters: List[IncidentCluster]) -> List[IncidentCluster]`
+- `identify_root_cause(cluster: IncidentCluster) -> RootCauseAnalysis`
+
+**Output Schema:**
+```python
+IncidentCluster:
+  - id: str
+  - errors: List[ErrorEvent]
+  - time_range: Tuple[datetime, datetime]
+  - affected_services: List[str]
+  - root_cause: Optional[RootCauseAnalysis]
+  - pattern_type: Enum[TEMPORAL, SERVICE, CAUSAL, TRACE]
+
+RootCauseAnalysis:
+  - primary_cause: ErrorEvent
+  - contributing_factors: List[ErrorEvent]
+  - confidence: float
+  - reasoning: str
+```
+
+### 3.5 Severity Assessment (`severity/`)
+
+**Severity Matrix:**
+| Impact Scope | User Impact | Data Loss Risk | Recovery Time | Severity |
+|-------------|-------------|----------------|---------------|----------|
+| Single service | Minimal | None | < 5 min | LOW |
+| Multiple services | Some users | None | 5-30 min | MEDIUM |
+| Core service | Many users | Possible | 30 min - 2 hr | HIGH |
+| Platform-wide | All users | Likely | > 2 hr | CRITICAL |
+
+**Assessment Factors:**
+- Number of affected services
+- Error rate (errors/minute)
+- User-facing impact
+- Data integrity risk
+- Recovery complexity
+- Business criticality of affected services
+
+**Key Functions:**
+- `assess_severity(cluster: IncidentCluster, context: SystemContext) -> SeverityLevel`
+- `calculate_impact_score(cluster: IncidentCluster) -> float`
+- `get_service_criticality(service: str) -> CriticalityLevel`
+
+**Output Schema:**
+```python
+SeverityAssessment:
+  - level: Enum[LOW, MEDIUM, HIGH, CRITICAL]
+  - score: float  # 0-100
+  - factors: Dict[str, float]
+  - justification: str
+```
+
+### 3.6 Knowledge Base (`knowledge_base/`)
+
+**Structure:**
+```
+knowledge_base/
+├── remediation_rules.yaml     # Pattern → Remediation mapping
+├── runbooks/                  # Detailed procedures
+│   ├── database_connection.md
+│   ├── api_timeout.md
+│   └── ...
+├── service_catalog.yaml       # Service metadata, criticality, contacts
+└── error_catalog.yaml         # Error signatures, descriptions
+```
+
+**Remediation Rule Schema:**
+```yaml
+- pattern: "DATABASE_CONNECTION_ERROR"
+  severity_threshold: "MEDIUM"
+  actions:
+    - immediate:
+        - "Check database server status"
+        - "Verify connection pool configuration"
+        - "Check network connectivity to DB"
+      automated: true
+    - investigation:
+        - "Review slow query logs"
+        - "Check for connection leaks"
+        - "Analyze connection pool metrics"
+      automated: false
+    - resolution:
+        - "Restart database service if needed"
+        - "Scale connection pool"
+        - "Fix application connection handling"
+      automated: false
+  runbook: "database_connection.md"
+  escalation: "DBA on-call"
+```
+
+**Key Functions:**
+- `get_remediation(category: ErrorCategory, severity: SeverityLevel) -> RemediationPlan`
+- `get_runbook(pattern: str) -> str`
+- `get_service_info(service: str) -> ServiceInfo`
+
+### 3.7 Incident Report Generator (`reporter/`)
+
+**Report Sections:**
+1. **Executive Summary** - One-paragraph overview
+2. **Incident Details** - ID, timestamp, duration, severity
+3. **Root Cause Analysis** - Primary cause, contributing factors
+4. **Affected Services** - List with impact description
+5. **Timeline** - Chronological event sequence
+6. **Remediation Plan** - Immediate, investigation, resolution steps
+7. **Evidence** - Relevant log excerpts with timestamps
+8. **Prevention Recommendations** - Long-term fixes
+
+**Output Formats:**
+- Markdown (human-readable)
+- JSON (machine-readable)
+- HTML (dashboard integration)
+
+**Key Functions:**
+- `generate_report(cluster: IncidentCluster, assessment: SeverityAssessment, remediation: RemediationPlan) -> IncidentReport`
+- `export_markdown(report: IncidentReport) -> str`
+- `export_json(report: IncidentReport) -> str`
+
+---
+
+## 4. DATA FLOW
+
+```
+Input Logs
+    │
+    ▼
+[Log Ingestion] ──▶ List[LogEntry]
+    │
+    ▼
+[Preprocessor] ──▶ Normalized List[LogEntry]
+    │
+    ▼
+[Error Detection] ──▶ List[ErrorEvent]
+    │
+    ▼
+[Correlation Engine] ──▶ List[IncidentCluster]
+    │
+    ▼
+[Severity Assessment] ──▶ List[(IncidentCluster, SeverityAssessment)]
+    │
+    ▼
+[Knowledge Base Lookup] ──▶ List[(IncidentCluster, SeverityAssessment, RemediationPlan)]
+    │
+    ▼
+[Report Generator] ──▶ List[IncidentReport]
+    │
+    ▼
+Output (Markdown/JSON/HTML)
+```
+
+---
+
+## 5. TECHNOLOGY STACK RECOMMENDATION
+
+### Core Framework
+- **Language**: Python 3.11+
+- **Agent Framework**: LangGraph (for multi-step workflows) or plain Python classes
+- **API**: FastAPI (REST endpoints)
+- **Validation**: Pydantic v2
+
+### Key Libraries
+| Purpose | Library |
+|---------|---------|
+| Log Parsing | `python-json-logger`, `csv`, `re`, `dateutil` |
+| ML Classification | `scikit-learn`, `transformers` (optional) |
+| Time Series | `pandas` |
+| Configuration | `PyYAML`, `pydantic-settings` |
+| Testing | `pytest`, `pytest-asyncio` |
+| Observability | `loguru`, `prometheus-client` |
+
+### Project Structure
+```
+incidentx/
+├── config/
+│   ├── settings.yaml
+│   ├── error_patterns.yaml
+│   ├── causal_rules.yaml
+│   └── severity_rules.yaml
+├── knowledge_base/
+│   ├── remediation_rules.yaml
+│   ├── runbooks/
+│   ├── service_catalog.yaml
+│   └── error_catalog.yaml
+├── src/
+│   ├── incidentx/
+│   │   ├── __init__.py
+│   │   ├── models.py              # Pydantic models
+│   │   ├── ingestion/
+│   │   │   ├── __init__.py
+│   │   │   ├── parser.py
+│   │   │   └── detectors.py
+│   │   ├── preprocessor/
+│   │   │   ├── __init__.py
+│   │   │   └── normalizer.py
+│   │   ├── classifier/
+│   │   │   ├── __init__.py
+│   │   │   ├── rules.py
+│   │   │   ├── ml_classifier.py
+│   │   │   └── hybrid.py
+│   │   ├── correlator/
+│   │   │   ├── __init__.py
+│   │   │   ├── temporal.py
+│   │   │   ├── causal.py
+│   │   │   └── engine.py
+│   │   ├── severity/
+│   │   │   ├── __init__.py
+│   │   │   └── assessor.py
+│   │   ├── knowledge_base/
+│   │   │   ├── __init__.py
+│   │   │   └── loader.py
+│   │   ├── reporter/
+│   │   │   ├── __init__.py
+│   │   │   ├── generator.py
+│   │   │   └── templates/
+│   │   ├── pipeline/
+│   │   │   ├── __init__.py
+│   │   │   └── orchestrator.py
+│   │   └── api/
+│   │       ├── __init__.py
+│   │       ├── routes.py
+│   │       └── schemas.py
+│   └── main.py
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── fixtures/
+├── scripts/
+│   ├── run_pipeline.py
+│   └── demo.py
+├── pyproject.toml
+├── README.md
+└── .env.example
+```
+
+---
+
+## 6. IMPLEMENTATION PHASES
+
+### Phase 1: Foundation (Week 1)
+- [ ] Project setup, config management, Pydantic models
+- [ ] Log ingestion: TXT, JSON, CSV parsers
+- [ ] Preprocessor: timestamp normalization, service standardization
+- [ ] Unit tests for parsers
+
+### Phase 2: Detection & Classification (Week 1-2)
+- [ ] Rule-based error detection (regex patterns)
+- [ ] Error categorization taxonomy
+- [ ] Hybrid classifier (rules + optional ML)
+- [ ] Tests with sample logs
+
+### Phase 3: Correlation & Severity (Week 2)
+- [ ] Temporal correlation engine
+- [ ] Causal rule engine
+- [ ] Root cause identification
+- [ ] Severity assessment matrix
+- [ ] Tests with multi-error scenarios
+
+### Phase 4: Knowledge Base & Remediation (Week 2-3)
+- [ ] Knowledge base loader
+- [ ] Remediation rule engine
+- [ ] Runbook templates
+- [ ] Service catalog
+
+### Phase 5: Reporting & API (Week 3)
+- [ ] Report generator (Markdown, JSON)
+- [ ] FastAPI endpoints
+- [ ] End-to-end pipeline orchestrator
+- [ ] Integration tests
+
+### Phase 6: Polish & Demo (Week 3-4)
+- [ ] CLI tool for local testing
+- [ ] Sample log datasets
+- [ ] Documentation
+- [ ] Demo script
+
+---
+
+## 7. CONFIGURATION FILES
+
+### 7.1 `config/error_patterns.yaml`
+```yaml
+patterns:
+  DATABASE_CONNECTION:
+    regex:
+      - "connection refused"
+      - "connection timeout"
+      - "could not connect to database"
+      - "database.*unavailable"
+    level: ["ERROR", "CRITICAL", "FATAL"]
+    services: ["*"]
+  
+  API_TIMEOUT:
+    regex:
+      - "timeout"
+      - "request timed out"
+      - "upstream request timeout"
+    level: ["ERROR", "WARN"]
+    services: ["api*", "gateway", "proxy"]
+  
+  DISK_FULL:
+    regex:
+      - "no space left on device"
+      - "disk full"
+      - "insufficient disk space"
+    level: ["ERROR", "CRITICAL"]
+    services: ["*"]
+  
+  MEMORY_EXHAUSTION:
+    regex:
+      - "out of memory"
+      - "OOM"
+      - "memory limit exceeded"
+      - "java.lang.OutOfMemoryError"
+    level: ["ERROR", "FATAL"]
+    services: ["*"]
+  
+  AUTH_FAILURE:
+    regex:
+      - "authentication failed"
+      - "invalid credentials"
+      - "unauthorized"
+      - "401"
+    level: ["WARN", "ERROR"]
+    services: ["auth*", "api*", "gateway"]
+```
+
+### 7.2 `config/causal_rules.yaml`
+```yaml
+causal_chains:
+  - name: "db_down_causes_api_timeout"
+    primary: "DATABASE_CONNECTION"
+    secondary: ["API_TIMEOUT", "QUERY_FAILED", "CONNECTION_POOL_EXHAUSTED"]
+    time_window_minutes: 10
+    confidence: 0.9
+  
+  - name: "network_issues_cascade"
+    primary: "NETWORK_TIMEOUT"
+    secondary: ["SERVICE_UNAVAILABLE", "CIRCUIT_BREAKER_OPEN", "DEPENDENCY_FAILURE"]
+    time_window_minutes: 5
+    confidence: 0.85
+  
+  - name: "disk_full_cascades"
+    primary: "DISK_FULL"
+    secondary: ["LOG_WRITE_FAILURE", "CACHE_WRITE_FAILURE", "BACKUP_FAILURE"]
+    time_window_minutes: 15
+    confidence: 0.95
+```
+
+### 7.3 `config/severity_rules.yaml`
+```yaml
+severity_factors:
+  affected_services:
+    weight: 0.3
+    thresholds:
+      1: 10
+      2-3: 30
+      4-6: 60
+      7+: 90
+  
+  error_rate_per_minute:
+    weight: 0.25
+    thresholds:
+      1-5: 10
+      6-20: 40
+      21-50: 70
+      50+: 95
+  
+  user_facing_impact:
+    weight: 0.25
+    values:
+      none: 0
+      minimal: 20
+      partial: 50
+      major: 80
+      complete: 100
+  
+  data_loss_risk:
+    weight: 0.1
+    values:
+      none: 0
+      low: 20
+      medium: 50
+      high: 80
+      certain: 100
+  
+  recovery_complexity:
+    weight: 0.1
+    values:
+      trivial: 0
+      easy: 20
+      moderate: 50
+      complex: 80
+      very_complex: 100
+
+severity_thresholds:
+  LOW: 0
+  MEDIUM: 30
+  HIGH: 60
+  CRITICAL: 80
+```
+
+---
+
+## 8. API SPECIFICATION
+
+### POST `/api/v1/analyze`
+**Request:**
+```json
+{
+  "logs": "string (raw log text) OR file upload",
+  "format": "txt|json|csv",
+  "options": {
+    "time_window_minutes": 5,
+    "include_remediation": true,
+    "output_format": "markdown|json"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "incidents": [
+    {
+      "id": "inc_abc123",
+      "severity": "HIGH",
+      "summary": "Database connection failure causing API timeouts",
+      "root_cause": {
+        "primary": "DATABASE_CONNECTION",
+        "confidence": 0.92
+      },
+      "affected_services": ["user-api", "order-service", "payment-gateway"],
+      "timeline": [...],
+      "remediation": {
+        "immediate": [...],
+        "investigation": [...],
+        "resolution": [...]
+      },
+      "report_markdown": "..."
+    }
+  ],
+  "processing_time_ms": 1250
+}
+```
+
+### GET `/api/v1/health`
+### GET `/api/v1/patterns` - List known error patterns
+### GET `/api/v1/runbooks/{pattern}` - Get runbook for pattern
+
+---
+
+## 9. TESTING STRATEGY
+
+### Unit Tests (per module)
+- Parser: Various log formats, edge cases
+- Classifier: Known error patterns, false positives
+- Correlator: Temporal, causal, trace-based
+- Severity: Boundary conditions, factor weights
+- Reporter: Output format correctness
+
+### Integration Tests
+- Full pipeline with sample log files
+- Multi-incident scenarios
+- Concurrent processing
+
+### Test Fixtures
+```
+tests/fixtures/
+├── sample_logs/
+│   ├── database_outage.txt
+│   ├── api_timeout_spike.json
+│   ├── disk_full.csv
+│   └── multi_incident.txt
+├── expected_outputs/
+│   ├── database_outage_report.md
+│   └── api_timeout_report.json
+└── mock_knowledge_base/
+```
+
+---
+
+## 10. DEPLOYMENT CONSIDERATIONS
+
+### Docker
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN pip install uv && uv sync --frozen
+COPY src/ ./src/
+COPY config/ ./config/
+COPY knowledge_base/ ./knowledge_base/
+EXPOSE 8000
+CMD ["uv", "run", "uvicorn", "src.incidentx.api.routes:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Environment Variables
+```env
+LOG_LEVEL=INFO
+DEFAULT_TIME_WINDOW_MINUTES=5
+MAX_LOG_FILE_SIZE_MB=100
+ENABLE_ML_CLASSIFIER=false
+MODEL_PATH=/models/log_classifier
+KNOWLEDGE_BASE_PATH=/app/knowledge_base
+```
+
+---
+
+## 11. EXTENSION POINTS (FUTURE)
+
+1. **ML Enhancement**: Fine-tune transformer for log classification
+2. **Real-time Streaming**: Kafka/Redis Streams integration
+3. **Alerting**: PagerDuty, Opsgenie, Slack webhooks
+4. **Dashboard**: Grafana/Streamlit visualization
+5. **Feedback Loop**: Human-in-the-loop for improving classifications
+6. **Multi-tenancy**: Organization-level isolation
+7. **Historical Learning**: Pattern mining from resolved incidents
+
+---
+
+## 12. SUCCESS CRITERIA
+
+| Metric | Target |
+|--------|--------|
+| Log format support | TXT, JSON, CSV |
+| Error detection accuracy | >90% on known patterns |
+| Correlation precision | >85% for causal chains |
+| Severity alignment | >80% match with manual triage |
+| Report generation time | <2s for 10k log lines |
+| API latency (p95) | <500ms |
+
+---
+
+## 13. SAMPLE INPUT/OUTPUT
+
+### Input (Mixed Logs)
+```
+2024-01-15 10:23:45 ERROR [user-api] Failed to connect to database: connection refused
+2024-01-15 10:23:46 ERROR [user-api] Database connection pool exhausted
+2024-01-15 10:23:47 WARN  [order-service] API call to user-api timed out after 5000ms
+2024-01-15 10:23:48 ERROR [payment-gateway] Upstream service user-api unavailable
+2024-01-15 10:23:49 ERROR [user-api] Could not connect to database: timeout
+```
+
+### Output (Incident Report - Excerpt)
+```markdown
+# Incident Report: INC-20240115-001
+
+## Executive Summary
+**CRITICAL** database connectivity issue detected at 2024-01-15 10:23:45 UTC, 
+cascading to 3 downstream services (user-api, order-service, payment-gateway). 
+Root cause: Database server unreachable (connection refused).
+
+## Root Cause Analysis
+**Primary Cause**: DATABASE_CONNECTION_ERROR (confidence: 92%)
+- Database server not accepting connections on port 5432
+- All 3 application services unable to establish connections
+
+**Contributing Factors**:
+- Connection pool exhaustion (user-api)
+- No circuit breaker configured for DB dependencies
+
+## Timeline
+| Time | Service | Event |
+|------|---------|-------|
+| 10:23:45 | user-api | First DB connection refused |
+| 10:23:46 | user-api | Connection pool exhausted |
+| 10:23:47 | order-service | API timeout calling user-api |
+| 10:23:48 | payment-gateway | Upstream unavailable |
+| 10:23:49 | user-api | Additional connection timeouts |
+
+## Remediation Plan
+
+### Immediate (Automated)
+- [ ] Check database server status (systemctl status postgresql)
+- [ ] Verify network connectivity: `nc -zv db-host 5432`
+- [ ] Check database logs for startup errors
+
+### Investigation
+- [ ] Review database slow query logs
+- [ ] Check for connection leaks in user-api
+- [ ] Analyze connection pool metrics
+
+### Resolution
+- [ ] Restart database service if stopped
+- [ ] Increase max_connections in postgresql.conf
+- [ ] Implement circuit breaker in user-api
+- [ ] Add connection pool monitoring alerts
+
+## Evidence
+```
+10:23:45 ERROR [user-api] Failed to connect to database: connection refused
+10:23:46 ERROR [user-api] Database connection pool exhausted
+```
+
+## Prevention Recommendations
+1. Add database health checks to load balancer
+2. Implement circuit breaker pattern for all DB calls
+3. Set up connection pool utilization alerts (>80%)
+4. Configure database auto-failover
+```
+
+---
+
+## 14. NEXT STEPS
+
+1. **Initialize repository** with structure above
+2. **Create config files** (error_patterns.yaml, causal_rules.yaml, severity_rules.yaml)
+3. **Build knowledge base** with remediation rules for top 20 error patterns
+4. **Implement Phase 1** - Foundation modules
+5. **Create test fixtures** with realistic log samples
+6. **Iterate through phases** with continuous testing
+
+---
+
+*Document Version: 1.0*
+*Generated for Agentic Chase PS1 - IncidentX*
+
+// MY PLN > small teams with no on-call engineer, with the plain-English output for non-engineers built in. I updated the doc to show this as the decision and removed the audience question from its open items.
+
+One correction on my side: I called the non-engineer audience the “second” one in my message, but in the list it was the third (the doc had it right). I took your “second audience” to mean that non-engineer output. If you meant campus IT as the second audience, tell me and I’ll rework it.
+
+To turn this into an hour-by-hour build plan, I need to know how long the hackathon runs. Your original plan’s phases assume weeks, so it will need trimming.
+
+//
