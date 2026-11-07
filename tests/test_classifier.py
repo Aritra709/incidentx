@@ -43,6 +43,20 @@ def test_unknown_error_escalated_but_unmatched_warn_ignored():
     assert classifier.classify(entry("the flux capacitor inverted", level="WARN")) is None
 
 
+def test_prefers_longer_specific_match_when_scores_tie():
+    classifier = RuleBasedClassifier()
+    event = classifier.classify(
+        entry(
+            "Checkout request failed: upstream timeout after 5000ms",
+            level="WARN",
+            service="web-frontend",
+        )
+    )
+    assert event is not None
+    assert event.category == "API_TIMEOUT"
+    assert event.matched_pattern == "timeout after 5000ms"
+
+
 def test_signature_normalizes_numbers_and_ids():
     signature = build_signature(
         "Pool waiter 123 blocked for user 99 at 0xdeadbeef"

@@ -55,6 +55,7 @@ class RuleBasedClassifier:
                 else None
             )
             self.compiled[category] = {
+                "regex": [re.compile(pattern, re.IGNORECASE) for pattern in raw_regexes],
                 "combined": combined,
                 "levels": {level.upper() for level in spec.get("levels", [])},
                 "services": spec.get("services", ["*"]),
@@ -79,27 +80,31 @@ class RuleBasedClassifier:
 
         for category, spec in self.compiled.items():
             matcher = spec["combined"]
-            if matcher is None:
-                continue
-            match = matcher.search(entry.message)
-            if not match:
+            if matcher is None or not matcher.search(entry.message):
                 continue
             level_ok = not spec["levels"] or entry.level in spec["levels"]
             service_ok = self._service_in_scope(category, entry.service)
-            score = 0.68
-            reasons = [f"matched '{match.group(0)}'"]
-            if level_ok:
-                score += 0.10
-                reasons.append(f"level {entry.level} fits")
-            if service_ok:
-                score += 0.10
-                reasons.append(f"service {entry.service} is in scope")
-            specificity = len(match.group(0)) / max(len(entry.message), 1)
-            score += min(specificity, 0.10)
-            score = min(score, 0.98)
-            if best is None or score > best[0]:
-                best = (score, category, match.group(0))
-                best_reason = "; ".join(reasons)
+            for regex in spec["regex"]:
+                match = regex.search(entry.message)
+                if not match:
+                    continue
+                score = 0.68
+                reasons = [f"matched '{match.group(0)}'"]
+                if level_ok:
+                    score += 0.10
+                    reasons.append(f"level {entry.level} fits")
+                if service_ok:
+                    score += 0.10
+                    reasons.append(f"service {entry.service} is in scope")
+                specificity = len(match.group(0)) / max(len(entry.message), 1)
+                score += min(specificity, 0.10)
+                score = min(score, 0.98)
+                if best is None or (score, len(match.group(0))) > (
+                    best[0],
+                    len(best[2]),
+                ):
+                    best = (score, category, match.group(0))
+                    best_reason = "; ".join(reasons)
 
         if best is None:
             if entry.is_error:
