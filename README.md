@@ -1,5 +1,7 @@
 # IncidentX
 
+[![CI](https://github.com/Aritra709/incidentx/actions/workflows/ci.yml/badge.svg)](https://github.com/Aritra709/incidentx/actions/workflows/ci.yml)
+
 **The on-call engineer small teams can't afford.**
 
 IncidentX analyzes logs and a small changelog, finds incidents, explains what changed, rates severity against the business (not a generic matrix), and produces two outputs from one analysis: an engineer report and a plain-English customer update.
