@@ -65,6 +65,12 @@ def test_severity_drops_outside_business_window(pipeline):
     assert baseline.score < report.severity.score
 
 
+def test_result_reports_llm_off_when_request_disables_it(pipeline):
+    pipeline.llm.enabled = True
+    result = run_demo(pipeline)
+    assert result.llm_available is False
+
+
 def test_reports_written(pipeline, tmp_path):
     result = run_demo(pipeline)
     output = tmp_path / "reports"

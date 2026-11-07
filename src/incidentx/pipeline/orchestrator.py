@@ -112,7 +112,7 @@ class IncidentXPipeline:
             return AnalysisResult(
                 logs_processed=0,
                 processing_time_ms=(time.perf_counter() - started) * 1000,
-                llm_available=self.llm.available,
+                llm_available=self.llm.available and use_llm,
                 business_profile=self._business_profile(),
                 warnings=["No log lines were found."],
             )
@@ -179,7 +179,7 @@ class IncidentXPipeline:
             errors_detected=len(errors),
             changes_loaded=len(changes),
             processing_time_ms=round(elapsed_ms, 1),
-            llm_available=self.llm.available,
+            llm_available=self.llm.available and use_llm,
             business_profile=self._business_profile(),
             warnings=warnings,
         )
