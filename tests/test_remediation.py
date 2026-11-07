@@ -1,7 +1,15 @@
+from datetime import datetime
+
 from incidentx.knowledge_base.loader import KnowledgeBase
 from incidentx.knowledge_base.remediation import RemediationEngine
-from incidentx.models import IncidentCluster, ErrorEvent, LogEntry, RootCauseAnalysis, SeverityAssessment
-from datetime import datetime
+from incidentx.models import (
+    ChangeEvent,
+    ErrorEvent,
+    IncidentCluster,
+    LogEntry,
+    RootCauseAnalysis,
+    SeverityAssessment,
+)
 
 
 def build_cluster():
@@ -25,6 +33,14 @@ def build_cluster():
         start=log.timestamp,
         end=log.timestamp,
         affected_services=["checkout-api"],
+        suspected_change=ChangeEvent(
+            id="chg-test",
+            timestamp=datetime(2026, 11, 7, 19, 52),
+            type="deploy",
+            service="checkout-api",
+            description="reduce pool max from 40 to 8",
+            rollback="kubectl rollout undo deployment/checkout-api",
+        ),
     )
 
 

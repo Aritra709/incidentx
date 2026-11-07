@@ -81,7 +81,12 @@ class CorrelationEngine:
             previous = merged[-1]
             gap = cluster.start - previous.end
             overlap = set(previous.affected_services) & set(cluster.affected_services)
-            if gap <= timedelta(minutes=window_minutes) and overlap:
+            trace_present = self._has_trace(previous) or self._has_trace(cluster)
+            if (
+                gap <= timedelta(minutes=window_minutes)
+                and overlap
+                and not trace_present
+            ):
                 previous.errors.extend(cluster.errors)
                 previous.affected_services = sorted(
                     set(previous.affected_services) | set(cluster.affected_services)
@@ -93,6 +98,14 @@ class CorrelationEngine:
         for cluster in merged:
             cluster.id = self._incident_id(cluster)
         return merged
+
+    @staticmethod
+    def _has_trace(cluster: IncidentCluster) -> bool:
+        return any(
+            error.log_entry.metadata.get("trace_id")
+            or error.log_entry.metadata.get("traceId")
+            for error in cluster.errors
+        )
 
     def _build_cluster(self, errors: List[ErrorEvent]) -> IncidentCluster:
         start = min(error.timestamp for error in errors)
@@ -174,7 +187,7 @@ class CorrelationEngine:
             if secondary_present:
                 reasons.append(
                     f"causal chain '{chain.get('name', primary)}' explains "
-                    f"{', '.join(secondary_present)}"
+                    f"{', '.join(category.replace('_', ' ').lower() for category in secondary_present)}"
                 )
             else:
                 reasons.append(f"known failure pattern '{chain.get('name', primary)}'")
@@ -209,7 +222,7 @@ class CorrelationEngine:
             primary_category=primary,
             primary_service=primary_service,
             confidence=confidence,
-            reasoning=" ".join(reason.capitalize() for reason in reasons) + ".",
+            reasoning=". ".join(reason[0].upper() + reason[1:] for reason in reasons) + ".",
             suspected_change_id=top_change.change.id if top_change else None,
             change_confidence=top_change.confidence if top_change else 0.0,
             change_reason=top_change.reason if top_change else "",

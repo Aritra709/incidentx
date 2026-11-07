@@ -1,18 +1,24 @@
+import pytest
+
 from incidentx.pipeline.orchestrator import IncidentXPipeline
 
 
-def run_demo():
-    pipeline = IncidentXPipeline()
+@pytest.fixture
+def pipeline(tmp_path):
+    return IncidentXPipeline(memory_path=tmp_path / "memory.json")
+
+
+def run_demo(pipeline):
     paths = IncidentXPipeline.demo_paths()
-    return pipeline, pipeline.analyze(
+    return pipeline.analyze(
         logs_path=paths["logs"],
         changes_path=paths["changes"],
         use_llm=False,
     )
 
 
-def test_demo_end_to_end():
-    pipeline, result = run_demo()
+def test_demo_end_to_end(pipeline):
+    result = run_demo(pipeline)
     assert result.logs_processed > 20
     assert result.errors_detected > 15
     assert result.changes_loaded == 4
@@ -36,39 +42,40 @@ def test_demo_end_to_end():
     assert "Ready-to-Send Customer Update" in report.engineer_markdown
 
 
-def test_red_herring_change_ranks_lower():
-    pipeline, result = run_demo()
+def test_red_herring_change_ranks_lower(pipeline):
+    result = run_demo(pipeline)
     report = result.incidents[0]
     assert report.root_cause.change_confidence > 0.8
     assert report.root_cause.suspected_change_id == "chg-20261107-001"
 
 
-def test_incident_memory_matches_seed():
-    _, result = run_demo()
+def test_incident_memory_matches_seed(pipeline):
+    result = run_demo(pipeline)
     report = result.incidents[0]
     assert report.cluster.similar_incidents
     assert report.cluster.similar_incidents[0].incident_id == "INC-20261024-001"
     assert report.cluster.similar_incidents[0].similarity >= 0.3
 
 
-def test_severity_drops_outside_business_window():
-    pipeline, result = run_demo()
+def test_severity_drops_outside_business_window(pipeline):
+    result = run_demo(pipeline)
     report = result.incidents[0]
     baseline = pipeline.assessor.assess(report.cluster, ignore_windows=True)
     assert baseline.level == "MEDIUM"
     assert baseline.score < report.severity.score
 
 
-def test_reports_written(tmp_path):
-    pipeline = IncidentXPipeline()
-    paths = IncidentXPipeline.demo_paths()
-    result = pipeline.analyze(
-        logs_path=paths["logs"],
-        changes_path=paths["changes"],
-        use_llm=False,
-    )
-    written = pipeline.write_reports(result.incidents, tmp_path)
-    assert len(written) == 2
+def test_reports_written(pipeline, tmp_path):
+    result = run_demo(pipeline)
+    output = tmp_path / "reports"
+    written = pipeline.write_reports(result.incidents, output)
+    assert len(written) == 3
     assert all(path.exists() for path in written)
     assert any(path.suffix == ".md" for path in written)
     assert any(path.suffix == ".json" for path in written)
+    assert any(path.suffix == ".html" for path in written)
+    html = next(path for path in written if path.suffix == ".html").read_text(
+        encoding="utf-8"
+    )
+    assert "Ready-to-send customer update" in html
+    assert "Saturday flash sale" in html

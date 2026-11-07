@@ -12,7 +12,6 @@ from dateutil import parser as date_parser
 
 from ..models import LEVEL_ORDER, LogEntry, LogFormat
 
-
 TXT_PATTERNS = [
     re.compile(
         r"^(?P<ts>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?)"

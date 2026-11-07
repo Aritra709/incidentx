@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout API: database connection pool exhaustion after deploy - INC-20261107-1954-AF8D</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #0f172a;
+         background: #f1f5f9; line-height: 1.55; }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
+  .hero { background: linear-gradient(120deg, #dc2626, #0f172a);
+           color: #fff; padding: 28px 30px; border-radius: 16px; }
+  .hero h1 { margin: 0 0 8px; font-size: 1.9rem; }
+  .badge { display: inline-block; background: rgba(255,255,255,.2);
+            padding: 4px 12px; border-radius: 999px; font-weight: 700;
+            letter-spacing: .04em; font-size: .8rem; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+           margin: 18px 0; }
+  .metric { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+             padding: 14px 16px; }
+  .metric span { display: block; color: #64748b; font-size: .78rem;
+                  text-transform: uppercase; letter-spacing: .05em; }
+  .metric strong { font-size: 1.25rem; }
+  section { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+             padding: 20px 24px; margin: 16px 0; }
+  h2 { margin-top: 0; font-size: 1.2rem; }
+  h3 { font-size: 1rem; margin-bottom: 6px; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 5px;
+          font-size: .88em; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #e2e8f0;
+            vertical-align: top; }
+  th { color: #64748b; font-size: .78rem; text-transform: uppercase; }
+  tr.change td { background: #fef3c7; }
+  .status { white-space: pre-wrap; background: #f8fafc; border: 1px dashed #cbd5e1;
+             border-radius: 10px; padding: 16px; font-family: inherit; }
+  .muted { color: #64748b; font-size: .88rem; }
+  .flag { background: #fef3c7; color: #92400e; padding: 1px 7px;
+           border-radius: 999px; font-size: .72rem; font-weight: 700; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .grid, .two { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="badge">CRITICAL · 82/100</span>
+    <span class="badge">baseline MEDIUM · 54/100</span>
+    <h1>Checkout API: database connection pool exhaustion after deploy</h1>
+    <p>INC-20261107-1954-AF8D · 2026-11-07 19:54 local ·
+    8 min · 24 errors</p>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><span>Affected services</span><strong>3</strong></div>
+    <div class="metric"><span>Business window</span><strong>Saturday flash sale</strong></div>
+    <div class="metric"><span>Root cause</span><strong>CONNECTION_POOL_EXHAUSTED</strong></div>
+    <div class="metric"><span>Linked change</span><strong>chg-20261107-001</strong></div>
+  </div>
+
+  <section>
+    <h2>Executive summary</h2>
+    <p>CRITICAL because revenue service checkout-api failed during &#x27;Saturday flash sale&#x27;. The same failure outside this window would score 54 (MEDIUM).</p>
+    <p>Causal chain &#x27;pool_exhaustion_cascades&#x27; explains api timeout, service unavailable, message queue backup. The first error began after deploy change &#x27;Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory&#x27; (chg-20261107-001). The change has a rollback path: kubectl rollout undo deployment/checkout-api. The primary error occurred before the downstream errors.</p>
+    <h2>What changed?</h2><p><strong>deploy chg-20261107-001</strong> at 2026-11-07 19:52 on <code>checkout-api</code></p><p>Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory</p><p class='muted'>Link confidence 90%. deploy on checkout-api made 3 min before the first error; touches affected service checkout-api; keyword overlap with the errors is 50%.</p><p>Rollback: <code>kubectl rollout undo deployment/checkout-api</code></p>
+  </section>
+
+  <section>
+    <h2>Business-aware severity</h2>
+    <p>3 service(s) affected (checkout-api, notification-worker, web-frontend). Error rate 2.9/min over 8.2 min. Revenue service(s) affected: checkout-api. Incident overlaps business window &#x27;Saturday flash sale&#x27; (20:00-22:00). Factor scores: scope 55, error rate 15, business criticality 100, revenue window 100, blast radius 30, data loss 0. Final score 82.0 -&gt; CRITICAL. Raised to the CRITICAL floor because revenue service checkout-api failed during &#x27;Saturday flash sale&#x27;.</p>
+    <p class="muted">Factors: scope 55, error rate 15, business criticality 100, revenue window 100, blast radius 30, data loss 0</p>
+  </section>
+
+  <section>
+    <h2>Timeline</h2>
+    <table>
+      <thead><tr><th>Time</th><th>Service</th><th>Type</th><th>Event</th></tr></thead>
+      <tbody><tr><td>19:54:58</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Database connection pool usage at 100% (in_use=8, waiting=12)</td></tr><tr><td>19:55:02</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Could not acquire connection from pool: connection pool exhausted (max=8)</td></tr><tr><td>19:55:03</td><td><code>checkout-api</code></td><td>DATABASE_CONNECTION</td><td>Database connection timeout after 3000ms</td></tr><tr><td>19:55:04</td><td><code>web-frontend</code></td><td>API_TIMEOUT</td><td>Checkout request failed: upstream timeout after 5000ms</td></tr><tr><td>19:55:15</td><td><code>web-frontend</code></td><td>SERVICE_UNAVAILABLE</td><td>503 Service Unavailable for POST /checkout</td></tr><tr><td>19:55:44</td><td><code>checkout-api</code></td><td>DATABASE_CONNECTION</td><td>Database connection timeout after 3000ms</td></tr><tr><td>19:56:02</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Could not acquire connection from pool: connection pool exhausted (max=8)</td></tr><tr><td>19:56:44</td><td><code>notification-worker</code></td><td>MESSAGE_QUEUE_BACKUP</td><td>payment confirmation delayed: queue backlog 340</td></tr><tr><td>19:57:10</td><td><code>checkout-api</code></td><td>DATABASE_CONNECTION</td><td>Database connection timeout after 3000ms</td></tr><tr><td>19:58:01</td><td><code>web-frontend</code></td><td>API_TIMEOUT</td><td>Checkout request failed: upstream timeout after 5000ms</td></tr><tr><td>19:59:03</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Could not acquire connection from pool: connection pool exhausted (max=8, waiting=26)</td></tr><tr><td>19:59:41</td><td><code>web-frontend</code></td><td>SERVICE_UNAVAILABLE</td><td>503 Service Unavailable for POST /checkout</td></tr><tr><td>20:00:05</td><td><code>checkout-api</code></td><td>DATABASE_CONNECTION</td><td>Database connection timeout after 3000ms</td></tr><tr><td>20:00:06</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Could not acquire connection from pool: connection pool exhausted (max=8, waiting=37)</td></tr><tr><td>20:00:08</td><td><code>web-frontend</code></td><td>SERVICE_UNAVAILABLE</td><td>503 Service Unavailable for POST /checkout</td></tr><tr><td>20:00:10</td><td><code>notification-worker</code></td><td>MESSAGE_QUEUE_BACKUP</td><td>payment confirmation delayed: queue backlog 1200</td></tr><tr><td>20:00:44</td><td><code>checkout-api</code></td><td>DATABASE_CONNECTION</td><td>Database connection timeout after 3000ms</td></tr><tr><td>20:01:12</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Could not acquire connection from pool: connection pool exhausted (max=8, waiting=51)</td></tr><tr><td>20:01:13</td><td><code>web-frontend</code></td><td>API_TIMEOUT</td><td>Checkout request failed: upstream timeout after 5000ms</td></tr><tr><td>20:01:47</td><td><code>web-frontend</code></td><td>SERVICE_UNAVAILABLE</td><td>503 Service Unavailable for POST /checkout</td></tr><tr><td>20:02:03</td><td><code>checkout-api</code></td><td>DATABASE_CONNECTION</td><td>Database connection timeout after 3000ms</td></tr><tr><td>20:02:30</td><td><code>notification-worker</code></td><td>MESSAGE_QUEUE_BACKUP</td><td>queue backlog 2400; order confirmations delayed</td></tr><tr><td>20:02:58</td><td><code>checkout-api</code></td><td>CONNECTION_POOL_EXHAUSTED</td><td>Could not acquire connection from pool: connection pool exhausted (max=8, waiting=64)</td></tr><tr><td>20:03:11</td><td><code>web-frontend</code></td><td>API_TIMEOUT</td><td>Checkout request failed: upstream timeout after 5000ms</td></tr><tr class='change'><td>19:52:10</td><td><code>checkout-api</code></td><td>CHANGE (deploy)</td><td>Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="two">
+      <div><h2>Affected services</h2><ul><li><code>checkout-api</code> <span class='muted'>revenue-critical</span></li><li><code>notification-worker</code> <span class='muted'>standard</span></li><li><code>web-frontend</code> <span class='muted'>critical</span></li></ul></div>
+      <div><h2>Downstream dependents</h2><ul><li><code>mobile-app</code></li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Remediation plan</h2>
+    <p class="muted">IncidentX never executes commands. Approval and dry-run are simulated.</p>
+    <h3>Immediate</h3><ul><li>Roll back deploy change chg-20261107-001 on checkout-api: kubectl rollout undo deployment/checkout-api <code>kubectl rollout undo deployment/checkout-api</code> <span class='flag'>approval required</span></li><li>Confirm pool size and waiting request count <code>curl -s localhost:8080/metrics | grep connection_pool</code></li><li>Check the last deploy or config change for pool-size edits</li><li>Add temporary application replicas to raise total pool capacity <span class='flag'>approval required</span></li><li>Check whether the database server is running <code>systemctl status postgresql</code></li><li>Verify network reachability from the failing service <code>nc -zv payments-db 5432</code></li><li>Check database logs for startup or crash errors <code>journalctl -u postgresql --since &#x27;15 min ago&#x27;</code></li><li>Identify which upstream call is timing out</li><li>Check upstream latency and error rate</li><li>Confirm the upstream service is running and healthy</li><li>Check load balancer and DNS health</li><li>Check for recent changes to the upstream service</li><li>Check queue depth and consumer health</li><li>Check whether downstream consumers are failing</li><li>Escalate to: Service owner.</li></ul><h3>Investigation</h3><ul><li>Measure peak concurrent requests against pool size</li><li>Look for slow queries holding connections</li><li>Check for connection leaks (borrowed but never returned)</li><li>Compare database connection metrics with the previous hour</li><li>Check for recent deploy or config changes that touch connection settings</li><li>Look for connection leaks in the failing service</li><li>Compare p50/p95/p99 latency to the previous hour</li><li>Check for recent deploys or traffic spikes</li><li>Identify whether failures are timeouts, 5xx responses, or refused connections</li><li>Check retry and circuit-breaker behaviour</li><li>Compare arrival rate with consumption rate</li><li>Look for poison messages or repeated retries</li></ul><h3>Resolution</h3><ul><li>Roll back the pool-size change <span class='flag'>approval required</span></li><li>Restore the previous max connections value <span class='flag'>approval required</span></li><li>Switch to request-scoped connection handling</li><li>Restart the database service if it is stopped <code>systemctl restart postgresql</code> <span class='flag'>approval required</span></li><li>Roll back the most recent connection-related change <span class='flag'>approval required</span></li><li>Increase max_connections only after confirming available memory <span class='flag'>approval required</span></li><li>Roll back the change that increased latency <span class='flag'>approval required</span></li><li>Raise timeouts only after confirming downstream capacity <span class='flag'>approval required</span></li><li>Restart or redeploy the unhealthy upstream service <span class='flag'>approval required</span></li><li>Roll back the most recent upstream change <span class='flag'>approval required</span></li><li>Scale consumers <span class='flag'>approval required</span></li><li>Replay or drain the backlog once consumers are healthy <span class='flag'>approval required</span></li></ul>
+    <h3>Prevention</h3><ul><li>Load-test with production peak concurrency before changing pool sizes.</li><li>Alert on pool wait time, not just failure count.</li><li>Keep pool size changes behind a reviewed config change.</li><li>Add a database health check to the load balancer.</li><li>Alert when connection pool utilisation stays above 80% for five minutes.</li><li>Implement circuit breakers for database-backed endpoints.</li><li>Add per-dependency latency alerts.</li><li>Load-test peak traffic before sale events.</li><li>Add upstream health checks and automatic failover.</li><li>Add circuit breakers with bounded retries.</li><li>Alert on sustained consumer lag.</li><li>Add dead-letter queues with alerting.</li></ul>
+  </section>
+
+  <section>
+    <h2>Incident memory</h2>
+    <ul><li><strong>INC-20261024-001</strong> (46% similar, HIGH) - Checkout outage after connection pool config change<br><span class='muted'>What worked: Rolled back checkout-api to v2.13.3; Restored DB_POOL_MAX to 40; Added pool-wait-time alert</span></li></ul>
+  </section>
+
+  <section>
+    <h2>Plain-English summary</h2>
+    <p><strong>Customers cannot complete checkout right now</strong></p>
+    <p><strong>What is broken:</strong> Database connection pool exhaustion on Checkout API. IncidentX grouped 24 related errors between 19:54 and 20:03.</p>
+    <p><strong>Who is affected:</strong> Customers trying to buy. Checkout API, Web storefront are affected; failures started during the live sale.</p>
+    <p><strong>What we are doing:</strong> We linked the failure to a deploy made at 19:52 on Checkout API. We are preparing a rollback and checking that the fix is safe before it runs.</p>
+  </section>
+
+  <section>
+    <h2>Ready-to-send customer update</h2>
+    <div class="status">Status update - 20:03 local time<br><br>We&#x27;re aware that some customers are unable to complete checkout right now. We&#x27;ve identified a recent change as the likely cause and are reviewing a rollback.<br><br>We&#x27;re sorry for the disruption. The next update will be posted by 20:33 local time.<br><br>- Acme Shop</div>
+  </section>
+
+  <p class="muted">Generated by IncidentX. Rules are the fast path; every conclusion links back to evidence.</p>
+</main>
+</body>
+</html>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from ..models import (
     ChangeEvent,
@@ -13,7 +13,6 @@ from ..models import (
     SeverityAssessment,
 )
 from .loader import KnowledgeBase
-
 
 PHASE_ORDER = ("immediate", "investigation", "resolution")
 

@@ -116,6 +116,22 @@ def command_analyze(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError:
+        print("uvicorn is not installed. Run: pip install 'uvicorn>=0.29'")
+        return 1
+    print(f"IncidentX API on http://{args.host}:{args.port} (docs at /docs)")
+    uvicorn.run(
+        "incidentx.api.routes:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+    )
+    return 0
+
+
 def command_memory(args: argparse.Namespace) -> int:
     pipeline = IncidentXPipeline()
     entries = pipeline.memory.load()
@@ -163,6 +179,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     memory = subparsers.add_parser("memory", help="List stored incidents.")
     memory.set_defaults(func=command_memory)
+
+    serve = subparsers.add_parser("serve-api", help="Run the FastAPI service.")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--reload", action="store_true")
+    serve.set_defaults(func=command_serve)
     return parser
 
 

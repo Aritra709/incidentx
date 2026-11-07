@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Tuple
 from ..config import DEFAULT_CONFIG_DIR, load_config
 from ..models import ErrorEvent, LogEntry
 
-
 UUID_RE = re.compile(
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b", re.IGNORECASE
 )
@@ -69,13 +68,13 @@ class RuleBasedClassifier:
                 match = regex.search(entry.message)
                 if not match:
                     continue
-                score = 0.7
+                score = 0.68
                 reasons = [f"matched '{match.group(0)}'"]
                 if level_ok:
-                    score += 0.12
+                    score += 0.10
                     reasons.append(f"level {entry.level} fits")
                 if service_ok:
-                    score += 0.08
+                    score += 0.10
                     reasons.append(f"service {entry.service} is in scope")
                 specificity = len(match.group(0)) / max(len(entry.message), 1)
                 score += min(specificity, 0.10)

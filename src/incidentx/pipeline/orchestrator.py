@@ -19,7 +19,7 @@ from ..ingestion.parser import parse_file, parse_text
 from ..knowledge_base.loader import KnowledgeBase
 from ..knowledge_base.remediation import RemediationEngine
 from ..memory.store import MemoryStore
-from ..models import AnalysisResult, IncidentReport, LogFormat, LogLevel
+from ..models import AnalysisResult, IncidentReport, LogFormat
 from ..preprocessor.normalizer import build_service_alias_map, normalize_entries
 from ..reporter.generator import IncidentReporter
 from ..service_graph import ServiceGraph
@@ -77,8 +77,11 @@ class IncidentXPipeline:
     ):
         if changes_text is not None and changes_text.strip():
             text = changes_text.lstrip()
+            first_line = text.splitlines()[0].lower()
             if text.startswith("[") or text.startswith("{"):
                 changes = parse_changes_text(changes_text, "json", self.aliases)
+            elif "," in first_line and "timestamp" in first_line:
+                changes = parse_changes_text(changes_text, "csv", self.aliases)
             else:
                 changes = parse_changes_text(changes_text, "yaml", self.aliases)
             return changes, "inline text"
@@ -249,11 +252,13 @@ class IncidentXPipeline:
         for report in reports:
             markdown_path = directory / f"{report.id}.md"
             json_path = directory / f"{report.id}.json"
+            html_path = directory / f"{report.id}.html"
             markdown_path.write_text(report.engineer_markdown, encoding="utf-8")
             json_path.write_text(
                 self.reporter.export_json(report), encoding="utf-8"
             )
-            written.extend([markdown_path, json_path])
+            html_path.write_text(self.reporter.export_html(report), encoding="utf-8")
+            written.extend([markdown_path, json_path, html_path])
         return written
 
     @staticmethod

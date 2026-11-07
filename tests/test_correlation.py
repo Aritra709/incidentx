@@ -1,7 +1,7 @@
 from incidentx.changes.tracker import parse_changes_text
+from incidentx.classifier.rules import RuleBasedClassifier
 from incidentx.correlator.engine import CorrelationEngine
 from incidentx.ingestion.parser import parse_text
-from incidentx.classifier.rules import RuleBasedClassifier
 from incidentx.models import LogFormat
 from incidentx.preprocessor.normalizer import normalize_entries
 

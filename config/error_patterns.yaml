@@ -53,6 +53,7 @@ patterns:
     family: DEPENDENCY
     description: "A request to a service or API timed out."
     levels: [ERROR, WARN]
+    services: ["api*", "gateway", "proxy", "web-*", "mobile-*", "checkout-*", "payments-*"]
     regex:
       - "(upstream )?request (timed out|timeout)"
       - "upstream .* timeout"

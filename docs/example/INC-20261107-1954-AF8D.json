@@ -1,0 +1,1061 @@
+{
+  "id": "INC-20261107-1954-AF8D",
+  "title": "Checkout API: database connection pool exhaustion after deploy",
+  "severity": {
+    "level": "CRITICAL",
+    "score": 82.0,
+    "factors": {
+      "scope": 55.0,
+      "error_rate": 15.0,
+      "business_criticality": 100.0,
+      "revenue_window": 100.0,
+      "blast_radius": 30.0,
+      "data_loss": 0.0
+    },
+    "justification": "3 service(s) affected (checkout-api, notification-worker, web-frontend). Error rate 2.9/min over 8.2 min. Revenue service(s) affected: checkout-api. Incident overlaps business window 'Saturday flash sale' (20:00-22:00). Factor scores: scope 55, error rate 15, business criticality 100, revenue window 100, blast radius 30, data loss 0. Final score 82.0 -> CRITICAL. Raised to the CRITICAL floor because revenue service checkout-api failed during 'Saturday flash sale'.",
+    "business_summary": "CRITICAL because revenue service checkout-api failed during 'Saturday flash sale'. The same failure outside this window would score 54 (MEDIUM).",
+    "revenue_window": "Saturday flash sale",
+    "baseline_level": "MEDIUM",
+    "baseline_score": 54.2,
+    "boosted": true
+  },
+  "cluster": {
+    "id": "INC-20261107-1954-AF8D",
+    "errors": [
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:54:58 WARN  [checkout-api] Database connection pool usage at 100% (in_use=8, waiting=12)",
+          "timestamp": "2026-11-07T19:54:58",
+          "level": "WARN",
+          "service": "checkout-api",
+          "message": "Database connection pool usage at 100% (in_use=8, waiting=12)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 4
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection pool usage at n in use n waiting n",
+        "confidence": 0.88,
+        "matched_pattern": "connection pool usage at 100",
+        "source": "rules",
+        "reason": "matched 'connection pool usage at 100'; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:55:02 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8)",
+          "timestamp": "2026-11-07T19:55:02",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Could not acquire connection from pool: connection pool exhausted (max=8)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 5
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "could not acquire connection from pool connection pool exhausted max n",
+        "confidence": 0.98,
+        "matched_pattern": "connection pool exhausted",
+        "source": "rules",
+        "reason": "matched 'connection pool exhausted'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:55:03 ERROR [checkout-api] Database connection timeout after 3000ms",
+          "timestamp": "2026-11-07T19:55:03",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Database connection timeout after 3000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 6
+        },
+        "category": "DATABASE_CONNECTION",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection timeout after 3000ms",
+        "confidence": 0.98,
+        "matched_pattern": "Database connection timeout",
+        "source": "rules",
+        "reason": "matched 'Database connection timeout'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:55:04 WARN  [web-frontend] Checkout request failed: upstream timeout after 5000ms",
+          "timestamp": "2026-11-07T19:55:04",
+          "level": "WARN",
+          "service": "web-frontend",
+          "message": "Checkout request failed: upstream timeout after 5000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 7
+        },
+        "category": "API_TIMEOUT",
+        "family": "DEPENDENCY",
+        "signature": "checkout request failed upstream timeout after 5000ms",
+        "confidence": 0.98,
+        "matched_pattern": "timeout after 5000ms",
+        "source": "rules",
+        "reason": "matched 'timeout after 5000ms'; level WARN fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:55:15 ERROR [web-frontend] 503 Service Unavailable for POST /checkout",
+          "timestamp": "2026-11-07T19:55:15",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "503 Service Unavailable for POST /checkout",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 8
+        },
+        "category": "SERVICE_UNAVAILABLE",
+        "family": "DEPENDENCY",
+        "signature": "n service unavailable for post checkout",
+        "confidence": 0.98,
+        "matched_pattern": "Service Unavailable",
+        "source": "rules",
+        "reason": "matched 'Service Unavailable'; level ERROR fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:55:44 ERROR [checkout-api] Database connection timeout after 3000ms",
+          "timestamp": "2026-11-07T19:55:44",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Database connection timeout after 3000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 9
+        },
+        "category": "DATABASE_CONNECTION",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection timeout after 3000ms",
+        "confidence": 0.98,
+        "matched_pattern": "Database connection timeout",
+        "source": "rules",
+        "reason": "matched 'Database connection timeout'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:56:02 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8)",
+          "timestamp": "2026-11-07T19:56:02",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Could not acquire connection from pool: connection pool exhausted (max=8)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 10
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "could not acquire connection from pool connection pool exhausted max n",
+        "confidence": 0.98,
+        "matched_pattern": "connection pool exhausted",
+        "source": "rules",
+        "reason": "matched 'connection pool exhausted'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:56:44 WARN  [notification-worker] payment confirmation delayed: queue backlog 340",
+          "timestamp": "2026-11-07T19:56:44",
+          "level": "WARN",
+          "service": "notification-worker",
+          "message": "payment confirmation delayed: queue backlog 340",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 11
+        },
+        "category": "MESSAGE_QUEUE_BACKUP",
+        "family": "DEPENDENCY",
+        "signature": "payment confirmation delayed queue backlog n",
+        "confidence": 0.98,
+        "matched_pattern": "queue backlog",
+        "source": "rules",
+        "reason": "matched 'queue backlog'; level WARN fits; service notification-worker is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:57:10 ERROR [checkout-api] Database connection timeout after 3000ms",
+          "timestamp": "2026-11-07T19:57:10",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Database connection timeout after 3000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 12
+        },
+        "category": "DATABASE_CONNECTION",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection timeout after 3000ms",
+        "confidence": 0.98,
+        "matched_pattern": "Database connection timeout",
+        "source": "rules",
+        "reason": "matched 'Database connection timeout'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:58:01 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms",
+          "timestamp": "2026-11-07T19:58:01",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "Checkout request failed: upstream timeout after 5000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 13
+        },
+        "category": "API_TIMEOUT",
+        "family": "DEPENDENCY",
+        "signature": "checkout request failed upstream timeout after 5000ms",
+        "confidence": 0.98,
+        "matched_pattern": "timeout after 5000ms",
+        "source": "rules",
+        "reason": "matched 'timeout after 5000ms'; level ERROR fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:59:03 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=26)",
+          "timestamp": "2026-11-07T19:59:03",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Could not acquire connection from pool: connection pool exhausted (max=8, waiting=26)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 15
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "could not acquire connection from pool connection pool exhausted max n waiting n",
+        "confidence": 0.98,
+        "matched_pattern": "connection pool exhausted",
+        "source": "rules",
+        "reason": "matched 'connection pool exhausted'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 19:59:41 ERROR [web-frontend] 503 Service Unavailable for POST /checkout",
+          "timestamp": "2026-11-07T19:59:41",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "503 Service Unavailable for POST /checkout",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 16
+        },
+        "category": "SERVICE_UNAVAILABLE",
+        "family": "DEPENDENCY",
+        "signature": "n service unavailable for post checkout",
+        "confidence": 0.98,
+        "matched_pattern": "Service Unavailable",
+        "source": "rules",
+        "reason": "matched 'Service Unavailable'; level ERROR fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:00:05 ERROR [checkout-api] Database connection timeout after 3000ms",
+          "timestamp": "2026-11-07T20:00:05",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Database connection timeout after 3000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 18
+        },
+        "category": "DATABASE_CONNECTION",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection timeout after 3000ms",
+        "confidence": 0.98,
+        "matched_pattern": "Database connection timeout",
+        "source": "rules",
+        "reason": "matched 'Database connection timeout'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:00:06 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=37)",
+          "timestamp": "2026-11-07T20:00:06",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Could not acquire connection from pool: connection pool exhausted (max=8, waiting=37)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 19
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "could not acquire connection from pool connection pool exhausted max n waiting n",
+        "confidence": 0.98,
+        "matched_pattern": "connection pool exhausted",
+        "source": "rules",
+        "reason": "matched 'connection pool exhausted'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:00:08 ERROR [web-frontend] 503 Service Unavailable for POST /checkout",
+          "timestamp": "2026-11-07T20:00:08",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "503 Service Unavailable for POST /checkout",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 20
+        },
+        "category": "SERVICE_UNAVAILABLE",
+        "family": "DEPENDENCY",
+        "signature": "n service unavailable for post checkout",
+        "confidence": 0.98,
+        "matched_pattern": "Service Unavailable",
+        "source": "rules",
+        "reason": "matched 'Service Unavailable'; level ERROR fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:00:10 WARN  [notification-worker] payment confirmation delayed: queue backlog 1200",
+          "timestamp": "2026-11-07T20:00:10",
+          "level": "WARN",
+          "service": "notification-worker",
+          "message": "payment confirmation delayed: queue backlog 1200",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 21
+        },
+        "category": "MESSAGE_QUEUE_BACKUP",
+        "family": "DEPENDENCY",
+        "signature": "payment confirmation delayed queue backlog n",
+        "confidence": 0.98,
+        "matched_pattern": "queue backlog",
+        "source": "rules",
+        "reason": "matched 'queue backlog'; level WARN fits; service notification-worker is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:00:44 ERROR [checkout-api] Database connection timeout after 3000ms",
+          "timestamp": "2026-11-07T20:00:44",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Database connection timeout after 3000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 22
+        },
+        "category": "DATABASE_CONNECTION",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection timeout after 3000ms",
+        "confidence": 0.98,
+        "matched_pattern": "Database connection timeout",
+        "source": "rules",
+        "reason": "matched 'Database connection timeout'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:01:12 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=51)",
+          "timestamp": "2026-11-07T20:01:12",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Could not acquire connection from pool: connection pool exhausted (max=8, waiting=51)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 23
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "could not acquire connection from pool connection pool exhausted max n waiting n",
+        "confidence": 0.98,
+        "matched_pattern": "connection pool exhausted",
+        "source": "rules",
+        "reason": "matched 'connection pool exhausted'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:01:13 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms",
+          "timestamp": "2026-11-07T20:01:13",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "Checkout request failed: upstream timeout after 5000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 24
+        },
+        "category": "API_TIMEOUT",
+        "family": "DEPENDENCY",
+        "signature": "checkout request failed upstream timeout after 5000ms",
+        "confidence": 0.98,
+        "matched_pattern": "timeout after 5000ms",
+        "source": "rules",
+        "reason": "matched 'timeout after 5000ms'; level ERROR fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:01:47 ERROR [web-frontend] 503 Service Unavailable for POST /checkout",
+          "timestamp": "2026-11-07T20:01:47",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "503 Service Unavailable for POST /checkout",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 25
+        },
+        "category": "SERVICE_UNAVAILABLE",
+        "family": "DEPENDENCY",
+        "signature": "n service unavailable for post checkout",
+        "confidence": 0.98,
+        "matched_pattern": "Service Unavailable",
+        "source": "rules",
+        "reason": "matched 'Service Unavailable'; level ERROR fits; service web-frontend is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:02:03 ERROR [checkout-api] Database connection timeout after 3000ms",
+          "timestamp": "2026-11-07T20:02:03",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Database connection timeout after 3000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 26
+        },
+        "category": "DATABASE_CONNECTION",
+        "family": "INFRASTRUCTURE",
+        "signature": "database connection timeout after 3000ms",
+        "confidence": 0.98,
+        "matched_pattern": "Database connection timeout",
+        "source": "rules",
+        "reason": "matched 'Database connection timeout'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:02:30 WARN  [notification-worker] queue backlog 2400; order confirmations delayed",
+          "timestamp": "2026-11-07T20:02:30",
+          "level": "WARN",
+          "service": "notification-worker",
+          "message": "queue backlog 2400; order confirmations delayed",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 27
+        },
+        "category": "MESSAGE_QUEUE_BACKUP",
+        "family": "DEPENDENCY",
+        "signature": "queue backlog n order confirmations delayed",
+        "confidence": 0.98,
+        "matched_pattern": "queue backlog",
+        "source": "rules",
+        "reason": "matched 'queue backlog'; level WARN fits; service notification-worker is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:02:58 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=64)",
+          "timestamp": "2026-11-07T20:02:58",
+          "level": "ERROR",
+          "service": "checkout-api",
+          "message": "Could not acquire connection from pool: connection pool exhausted (max=8, waiting=64)",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 28
+        },
+        "category": "CONNECTION_POOL_EXHAUSTED",
+        "family": "INFRASTRUCTURE",
+        "signature": "could not acquire connection from pool connection pool exhausted max n waiting n",
+        "confidence": 0.98,
+        "matched_pattern": "connection pool exhausted",
+        "source": "rules",
+        "reason": "matched 'connection pool exhausted'; level ERROR fits; service checkout-api is in scope"
+      },
+      {
+        "log_entry": {
+          "raw_text": "2026-11-07 20:03:11 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms",
+          "timestamp": "2026-11-07T20:03:11",
+          "level": "ERROR",
+          "service": "web-frontend",
+          "message": "Checkout request failed: upstream timeout after 5000ms",
+          "metadata": {},
+          "source_file": "C:\\Users\\Aritra Barman\\incidentx\\data\\demo\\app.log",
+          "line_number": 29
+        },
+        "category": "API_TIMEOUT",
+        "family": "DEPENDENCY",
+        "signature": "checkout request failed upstream timeout after 5000ms",
+        "confidence": 0.98,
+        "matched_pattern": "timeout after 5000ms",
+        "source": "rules",
+        "reason": "matched 'timeout after 5000ms'; level ERROR fits; service web-frontend is in scope"
+      }
+    ],
+    "start": "2026-11-07T19:54:58",
+    "end": "2026-11-07T20:03:11",
+    "affected_services": [
+      "checkout-api",
+      "notification-worker",
+      "web-frontend"
+    ],
+    "pattern_type": "causal",
+    "root_cause": {
+      "primary_category": "CONNECTION_POOL_EXHAUSTED",
+      "primary_service": "checkout-api",
+      "confidence": 0.889,
+      "reasoning": "Causal chain 'pool_exhaustion_cascades' explains api timeout, service unavailable, message queue backup. The first error began after deploy change 'Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory' (chg-20261107-001). The change has a rollback path: kubectl rollout undo deployment/checkout-api. The primary error occurred before the downstream errors.",
+      "suspected_change_id": "chg-20261107-001",
+      "change_confidence": 0.897,
+      "change_reason": "deploy on checkout-api made 3 min before the first error; touches affected service checkout-api; keyword overlap with the errors is 50%.",
+      "contributing_categories": [
+        "DATABASE_CONNECTION",
+        "API_TIMEOUT",
+        "SERVICE_UNAVAILABLE",
+        "MESSAGE_QUEUE_BACKUP"
+      ],
+      "contributing_services": [
+        "notification-worker",
+        "web-frontend"
+      ]
+    },
+    "suspected_change": {
+      "id": "chg-20261107-001",
+      "timestamp": "2026-11-07T19:52:10",
+      "type": "deploy",
+      "service": "checkout-api",
+      "description": "Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory",
+      "author": "Priya (Commerce team)",
+      "environment": "production",
+      "rollback": "kubectl rollout undo deployment/checkout-api",
+      "metadata": {
+        "version": "v2.14.0",
+        "previous_version": "v2.13.3",
+        "diff": "DB_POOL_MAX 40 -> 8"
+      }
+    },
+    "similar_incidents": [
+      {
+        "incident_id": "INC-20261024-001",
+        "timestamp": "2026-10-24T21:10:00",
+        "title": "Checkout outage after connection pool config change",
+        "similarity": 0.46,
+        "severity": "HIGH",
+        "root_cause": "A deploy reduced the checkout-api connection pool below peak sale traffic.",
+        "resolution": [
+          "Rolled back checkout-api to v2.13.3",
+          "Restored DB_POOL_MAX to 40",
+          "Added pool-wait-time alert"
+        ]
+      }
+    ]
+  },
+  "root_cause": {
+    "primary_category": "CONNECTION_POOL_EXHAUSTED",
+    "primary_service": "checkout-api",
+    "confidence": 0.889,
+    "reasoning": "Causal chain 'pool_exhaustion_cascades' explains api timeout, service unavailable, message queue backup. The first error began after deploy change 'Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory' (chg-20261107-001). The change has a rollback path: kubectl rollout undo deployment/checkout-api. The primary error occurred before the downstream errors.",
+    "suspected_change_id": "chg-20261107-001",
+    "change_confidence": 0.897,
+    "change_reason": "deploy on checkout-api made 3 min before the first error; touches affected service checkout-api; keyword overlap with the errors is 50%.",
+    "contributing_categories": [
+      "DATABASE_CONNECTION",
+      "API_TIMEOUT",
+      "SERVICE_UNAVAILABLE",
+      "MESSAGE_QUEUE_BACKUP"
+    ],
+    "contributing_services": [
+      "notification-worker",
+      "web-frontend"
+    ]
+  },
+  "remediation": {
+    "actions": [
+      {
+        "id": "rollback-7a2967",
+        "action": "Roll back deploy change chg-20261107-001 on checkout-api: kubectl rollout undo deployment/checkout-api",
+        "phase": "immediate",
+        "automated": false,
+        "requires_approval": true,
+        "command": "kubectl rollout undo deployment/checkout-api",
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": "Dry-run first. Requires human approval before execution."
+      },
+      {
+        "id": "immediate-0ebf0f",
+        "action": "Confirm pool size and waiting request count",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": "curl -s localhost:8080/metrics | grep connection_pool",
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-ccb5a9",
+        "action": "Check the last deploy or config change for pool-size edits",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-c8ef0b",
+        "action": "Add temporary application replicas to raise total pool capacity",
+        "phase": "immediate",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-da11bf",
+        "action": "Measure peak concurrent requests against pool size",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-f26996",
+        "action": "Look for slow queries holding connections",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-a899da",
+        "action": "Check for connection leaks (borrowed but never returned)",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-bc9bca",
+        "action": "Roll back the pool-size change",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-5aab14",
+        "action": "Restore the previous max connections value",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-983292",
+        "action": "Switch to request-scoped connection handling",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-3596c6",
+        "action": "Check whether the database server is running",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": "systemctl status postgresql",
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-7980f5",
+        "action": "Verify network reachability from the failing service",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": "nc -zv payments-db 5432",
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-1a487a",
+        "action": "Check database logs for startup or crash errors",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": "journalctl -u postgresql --since '15 min ago'",
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-2a2a86",
+        "action": "Compare database connection metrics with the previous hour",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-bc39b4",
+        "action": "Check for recent deploy or config changes that touch connection settings",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-b919ed",
+        "action": "Look for connection leaks in the failing service",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-e12508",
+        "action": "Restart the database service if it is stopped",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": "systemctl restart postgresql",
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-ae0efd",
+        "action": "Roll back the most recent connection-related change",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-2eb0da",
+        "action": "Increase max_connections only after confirming available memory",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-ee5be0",
+        "action": "Identify which upstream call is timing out",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-8f6f30",
+        "action": "Check upstream latency and error rate",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-0d8784",
+        "action": "Compare p50/p95/p99 latency to the previous hour",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-52a85b",
+        "action": "Check for recent deploys or traffic spikes",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-8ad242",
+        "action": "Roll back the change that increased latency",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-2077a9",
+        "action": "Raise timeouts only after confirming downstream capacity",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-3b9eef",
+        "action": "Confirm the upstream service is running and healthy",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-a82199",
+        "action": "Check load balancer and DNS health",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-8b4225",
+        "action": "Check for recent changes to the upstream service",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-325596",
+        "action": "Identify whether failures are timeouts, 5xx responses, or refused connections",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-f8f231",
+        "action": "Check retry and circuit-breaker behaviour",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-4d5e14",
+        "action": "Restart or redeploy the unhealthy upstream service",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-05db2d",
+        "action": "Roll back the most recent upstream change",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-a32c48",
+        "action": "Check queue depth and consumer health",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "immediate-469206",
+        "action": "Check whether downstream consumers are failing",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-7a4ba9",
+        "action": "Compare arrival rate with consumption rate",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "investigation-6ad6f7",
+        "action": "Look for poison messages or repeated retries",
+        "phase": "investigation",
+        "automated": false,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-d8204e",
+        "action": "Scale consumers",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "resolution-344573",
+        "action": "Replay or drain the backlog once consumers are healthy",
+        "phase": "resolution",
+        "automated": false,
+        "requires_approval": true,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      },
+      {
+        "id": "escalate-7618ed",
+        "action": "Escalate to: Service owner.",
+        "phase": "immediate",
+        "automated": true,
+        "requires_approval": false,
+        "command": null,
+        "status": "proposed",
+        "dry_run_output": null,
+        "approved_by": null,
+        "note": null
+      }
+    ],
+    "prevention": [
+      "Load-test with production peak concurrency before changing pool sizes.",
+      "Alert on pool wait time, not just failure count.",
+      "Keep pool size changes behind a reviewed config change.",
+      "Add a database health check to the load balancer.",
+      "Alert when connection pool utilisation stays above 80% for five minutes.",
+      "Implement circuit breakers for database-backed endpoints.",
+      "Add per-dependency latency alerts.",
+      "Load-test peak traffic before sale events.",
+      "Add upstream health checks and automatic failover.",
+      "Add circuit breakers with bounded retries.",
+      "Alert on sustained consumer lag.",
+      "Add dead-letter queues with alerting."
+    ],
+    "runbook": "connection_pool_exhausted.md",
+    "escalation": "Service owner",
+    "proposed_rollback": "kubectl rollout undo deployment/checkout-api"
+  },
+  "plain_english": {
+    "headline": "Customers cannot complete checkout right now",
+    "what_broken": "Database connection pool exhaustion on Checkout API. IncidentX grouped 24 related errors between 19:54 and 20:03.",
+    "who_affected": "Customers trying to buy. Checkout API, Web storefront are affected; failures started during the live sale.",
+    "what_we_are_doing": "We linked the failure to a deploy made at 19:52 on Checkout API. We are preparing a rollback and checking that the fix is safe before it runs.",
+    "what_you_can_do": "If you are a customer, please retry in a few minutes. Support can use the ready-to-send update below.",
+    "when": "Saturday 07 November 2026, 19:54-20:03 local time"
+  },
+  "customer_status_update": "Status update - 20:03 local time\n\nWe're aware that some customers are unable to complete checkout right now. We've identified a recent change as the likely cause and are reviewing a rollback.\n\nWe're sorry for the disruption. The next update will be posted by 20:33 local time.\n\n- Acme Shop",
+  "engineer_markdown": "# Incident Report: INC-20261107-1954-AF8D\n\n**CRITICAL** (82/100) | Detected 2026-11-07 19:54 local | Duration 8 min | 24 error events | 3 services\n\n## Executive Summary\n\nCRITICAL incident on **Checkout API**: database connection pool exhaustion.\nThe most likely trigger is deploy **chg-20261107-001** on `checkout-api` at 19:52: Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory.\nDatabase connection pool exhaustion on Checkout API. IncidentX grouped 24 related errors between 19:54 and 20:03.\n\n## Business-Aware Severity\n\n- **Level:** CRITICAL (82/100)\n- **Baseline without business context:** MEDIUM (54/100)\n- **Live business window:** Saturday flash sale\n- **Why:** 3 service(s) affected (checkout-api, notification-worker, web-frontend). Error rate 2.9/min over 8.2 min. Revenue service(s) affected: checkout-api. Incident overlaps business window 'Saturday flash sale' (20:00-22:00). Factor scores: scope 55, error rate 15, business criticality 100, revenue window 100, blast radius 30, data loss 0. Final score 82.0 -> CRITICAL. Raised to the CRITICAL floor because revenue service checkout-api failed during 'Saturday flash sale'.\n\n| Factor | Score (0-100) |\n|---|---|\n| Scope | 55 |\n| Error Rate | 15 |\n| Business Criticality | 100 |\n| Revenue Window | 100 |\n| Blast Radius | 30 |\n| Data Loss | 0 |\n\n## What Changed? (Root Cause)\n\n**Primary cause:** `CONNECTION_POOL_EXHAUSTED` in `checkout-api` (confidence 89%)\n\nCausal chain 'pool_exhaustion_cascades' explains api timeout, service unavailable, message queue backup. The first error began after deploy change 'Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory' (chg-20261107-001). The change has a rollback path: kubectl rollout undo deployment/checkout-api. The primary error occurred before the downstream errors.\n\n**Suspected change**\n\n- ID: `chg-20261107-001`\n- Time: 2026-11-07 19:52 local\n- Type: deploy\n- Service: `checkout-api`\n- Author: Priya (Commerce team)\n- Description: Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory\n- Link confidence: 90%. deploy on checkout-api made 3 min before the first error; touches affected service checkout-api; keyword overlap with the errors is 50%.\n- Rollback path: `kubectl rollout undo deployment/checkout-api`\n\n## Timeline\n\n| Time | Service | Type | Event |\n|---|---|---|---|\n| 19:52:10 | `checkout-api` | CHANGE (deploy) | Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory |\n| 19:54:58 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Database connection pool usage at 100% (in_use=8, waiting=12) |\n| 19:55:02 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Could not acquire connection from pool: connection pool exhausted (max=8) |\n| 19:55:03 | `checkout-api` | DATABASE_CONNECTION | Database connection timeout after 3000ms |\n| 19:55:04 | `web-frontend` | API_TIMEOUT | Checkout request failed: upstream timeout after 5000ms |\n| 19:55:15 | `web-frontend` | SERVICE_UNAVAILABLE | 503 Service Unavailable for POST /checkout |\n| 19:55:44 | `checkout-api` | DATABASE_CONNECTION | Database connection timeout after 3000ms |\n| 19:56:02 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Could not acquire connection from pool: connection pool exhausted (max=8) |\n| 19:56:44 | `notification-worker` | MESSAGE_QUEUE_BACKUP | payment confirmation delayed: queue backlog 340 |\n| 19:57:10 | `checkout-api` | DATABASE_CONNECTION | Database connection timeout after 3000ms |\n| 19:58:01 | `web-frontend` | API_TIMEOUT | Checkout request failed: upstream timeout after 5000ms |\n| 19:59:03 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Could not acquire connection from pool: connection pool exhausted (max=8, waiting=26) |\n| 19:59:41 | `web-frontend` | SERVICE_UNAVAILABLE | 503 Service Unavailable for POST /checkout |\n| 20:00:05 | `checkout-api` | DATABASE_CONNECTION | Database connection timeout after 3000ms |\n| 20:00:06 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Could not acquire connection from pool: connection pool exhausted (max=8, waiting=37) |\n| 20:00:08 | `web-frontend` | SERVICE_UNAVAILABLE | 503 Service Unavailable for POST /checkout |\n| 20:00:10 | `notification-worker` | MESSAGE_QUEUE_BACKUP | payment confirmation delayed: queue backlog 1200 |\n| 20:00:44 | `checkout-api` | DATABASE_CONNECTION | Database connection timeout after 3000ms |\n| 20:01:12 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Could not acquire connection from pool: connection pool exhausted (max=8, waiting=51) |\n| 20:01:13 | `web-frontend` | API_TIMEOUT | Checkout request failed: upstream timeout after 5000ms |\n| 20:01:47 | `web-frontend` | SERVICE_UNAVAILABLE | 503 Service Unavailable for POST /checkout |\n| 20:02:03 | `checkout-api` | DATABASE_CONNECTION | Database connection timeout after 3000ms |\n| 20:02:30 | `notification-worker` | MESSAGE_QUEUE_BACKUP | queue backlog 2400; order confirmations delayed |\n| 20:02:58 | `checkout-api` | CONNECTION_POOL_EXHAUSTED | Could not acquire connection from pool: connection pool exhausted (max=8, waiting=64) |\n\n## Affected Services and Blast Radius\n\n- `checkout-api` (Checkout API, tier: revenue-critical)\n- `notification-worker` (Notification worker, tier: standard)\n- `web-frontend` (Web storefront, tier: critical)\n\nDownstream services that depend on the failing path: `mobile-app`\n\n## Evidence\n\n```log\n2026-11-07 19:54:58 WARN  [checkout-api] Database connection pool usage at 100% (in_use=8, waiting=12)\n2026-11-07 19:55:02 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8)\n2026-11-07 19:55:03 ERROR [checkout-api] Database connection timeout after 3000ms\n2026-11-07 19:55:04 WARN  [web-frontend] Checkout request failed: upstream timeout after 5000ms\n2026-11-07 19:55:15 ERROR [web-frontend] 503 Service Unavailable for POST /checkout\n2026-11-07 19:55:44 ERROR [checkout-api] Database connection timeout after 3000ms\n2026-11-07 19:56:02 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8)\n2026-11-07 19:56:44 WARN  [notification-worker] payment confirmation delayed: queue backlog 340\n2026-11-07 19:57:10 ERROR [checkout-api] Database connection timeout after 3000ms\n2026-11-07 19:58:01 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms\n2026-11-07 19:59:03 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=26)\n2026-11-07 19:59:41 ERROR [web-frontend] 503 Service Unavailable for POST /checkout\n```\n\n## Remediation Plan\n\n> IncidentX does not run commands. Proposed actions require human approval; the approval flow is simulated in this demo.\n\n### Immediate\n\n- [ ] Roll back deploy change chg-20261107-001 on checkout-api: kubectl rollout undo deployment/checkout-api - `kubectl rollout undo deployment/checkout-api` _(approval required)_\n- [ ] Confirm pool size and waiting request count - `curl -s localhost:8080/metrics | grep connection_pool` _(safe check)_\n- [ ] Check the last deploy or config change for pool-size edits _(safe check)_\n- [ ] Add temporary application replicas to raise total pool capacity _(approval required)_\n- [ ] Check whether the database server is running - `systemctl status postgresql` _(safe check)_\n- [ ] Verify network reachability from the failing service - `nc -zv payments-db 5432` _(safe check)_\n- [ ] Check database logs for startup or crash errors - `journalctl -u postgresql --since '15 min ago'` _(safe check)_\n- [ ] Identify which upstream call is timing out _(safe check)_\n- [ ] Check upstream latency and error rate _(safe check)_\n- [ ] Confirm the upstream service is running and healthy _(safe check)_\n- [ ] Check load balancer and DNS health _(safe check)_\n- [ ] Check for recent changes to the upstream service _(safe check)_\n- [ ] Check queue depth and consumer health _(safe check)_\n- [ ] Check whether downstream consumers are failing _(safe check)_\n- [ ] Escalate to: Service owner. _(safe check)_\n\n### Investigation\n\n- [ ] Measure peak concurrent requests against pool size\n- [ ] Look for slow queries holding connections\n- [ ] Check for connection leaks (borrowed but never returned)\n- [ ] Compare database connection metrics with the previous hour\n- [ ] Check for recent deploy or config changes that touch connection settings\n- [ ] Look for connection leaks in the failing service\n- [ ] Compare p50/p95/p99 latency to the previous hour\n- [ ] Check for recent deploys or traffic spikes\n- [ ] Identify whether failures are timeouts, 5xx responses, or refused connections\n- [ ] Check retry and circuit-breaker behaviour\n- [ ] Compare arrival rate with consumption rate\n- [ ] Look for poison messages or repeated retries\n\n### Resolution\n\n- [ ] Roll back the pool-size change _(approval required)_\n- [ ] Restore the previous max connections value _(approval required)_\n- [ ] Switch to request-scoped connection handling\n- [ ] Restart the database service if it is stopped - `systemctl restart postgresql` _(approval required)_\n- [ ] Roll back the most recent connection-related change _(approval required)_\n- [ ] Increase max_connections only after confirming available memory _(approval required)_\n- [ ] Roll back the change that increased latency _(approval required)_\n- [ ] Raise timeouts only after confirming downstream capacity _(approval required)_\n- [ ] Restart or redeploy the unhealthy upstream service _(approval required)_\n- [ ] Roll back the most recent upstream change _(approval required)_\n- [ ] Scale consumers _(approval required)_\n- [ ] Replay or drain the backlog once consumers are healthy _(approval required)_\n\n## Prevention Recommendations\n\n- Load-test with production peak concurrency before changing pool sizes.\n- Alert on pool wait time, not just failure count.\n- Keep pool size changes behind a reviewed config change.\n- Add a database health check to the load balancer.\n- Alert when connection pool utilisation stays above 80% for five minutes.\n- Implement circuit breakers for database-backed endpoints.\n- Add per-dependency latency alerts.\n- Load-test peak traffic before sale events.\n- Add upstream health checks and automatic failover.\n- Add circuit breakers with bounded retries.\n- Alert on sustained consumer lag.\n- Add dead-letter queues with alerting.\n\n**Escalation:** Service owner\n\n**Runbook:** `connection_pool_exhausted.md`\n\n## Incident Memory\n\n- **INC-20261024-001** (46% similar, HIGH): Checkout outage after connection pool config change\n  - Root cause: A deploy reduced the checkout-api connection pool below peak sale traffic.\n  - What worked: Rolled back checkout-api to v2.13.3; Restored DB_POOL_MAX to 40; Added pool-wait-time alert\n\n## Plain-English Summary\n\n**Customers cannot complete checkout right now**\n\n- **What is broken:** Database connection pool exhaustion on Checkout API. IncidentX grouped 24 related errors between 19:54 and 20:03.\n- **Who is affected:** Customers trying to buy. Checkout API, Web storefront are affected; failures started during the live sale.\n- **What we are doing:** We linked the failure to a deploy made at 19:52 on Checkout API. We are preparing a rollback and checking that the fix is safe before it runs.\n- **What you can do:** If you are a customer, please retry in a few minutes. Support can use the ready-to-send update below.\n- **When:** Saturday 07 November 2026, 19:54-20:03 local time\n\n## Ready-to-Send Customer Update\n\n```text\nStatus update - 20:03 local time\n\nWe're aware that some customers are unable to complete checkout right now. We've identified a recent change as the likely cause and are reviewing a rollback.\n\nWe're sorry for the disruption. The next update will be posted by 20:33 local time.\n\n- Acme Shop\n```\n\n---\n\n*Generated by IncidentX. Rules are the fast path; every conclusion links back to evidence.*",
+  "llm_explanation": "",
+  "generated_at": "2026-11-07T09:10:43.043496",
+  "llm_used": false
+}

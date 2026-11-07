@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 
 import yaml
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = PROJECT_ROOT / "src" / "incidentx"
 

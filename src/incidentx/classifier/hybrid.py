@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from ..config import DEFAULT_CONFIG_DIR
 from ..models import ErrorEvent, LogEntry
 from .llm import LLMReasoner
 from .rules import RuleBasedClassifier

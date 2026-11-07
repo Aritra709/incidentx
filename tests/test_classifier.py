@@ -49,4 +49,5 @@ def test_signature_normalizes_numbers_and_ids():
     )
     assert "123" not in signature
     assert "0xdeadbeef" not in signature
-    assert "<n>" in signature
+    assert "n" in signature.split()
+    assert "id" in signature.split()

@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..config import DEFAULT_CONFIG_DIR, load_config
-from ..models import IncidentCluster, SeverityAssessment, SEVERITY_ORDER
+from ..models import IncidentCluster, SeverityAssessment
 from ..service_graph import ServiceGraph
-
 
 DAY_NAMES = {
     "mon": 0,

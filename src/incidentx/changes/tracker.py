@@ -4,9 +4,8 @@ import csv
 import io
 import json
 import re
-import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -14,9 +13,7 @@ import yaml
 
 from ..ingestion.parser import parse_timestamp
 from ..models import ChangeEvent, IncidentCluster
-from ..preprocessor.normalizer import normalize_entries
 from ..service_graph import ServiceGraph
-
 
 STOPWORDS = {
     "the",

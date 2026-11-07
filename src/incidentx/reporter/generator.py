@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import html as html_module
 import json
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..knowledge_base.loader import KnowledgeBase
 from ..models import (
@@ -394,3 +395,222 @@ class IncidentReporter:
     @staticmethod
     def export_json(report: IncidentReport) -> str:
         return json.dumps(report.model_dump(mode="json"), indent=2, ensure_ascii=False)
+
+    def export_html(self, report: IncidentReport) -> str:
+        severity = report.severity
+        colors = {
+            "CRITICAL": "#dc2626",
+            "HIGH": "#ea580c",
+            "MEDIUM": "#d97706",
+            "LOW": "#2563eb",
+        }
+        color = colors.get(severity.level, "#475569")
+
+        def escape(value: object) -> str:
+            return html_module.escape(str(value)).replace("\n", "<br>")
+
+        timeline_rows = []
+        for error in report.cluster.errors[:24]:
+            if error.timestamp is None:
+                continue
+            timeline_rows.append(
+                "<tr>"
+                f"<td>{error.timestamp:%H:%M:%S}</td>"
+                f"<td><code>{escape(error.service)}</code></td>"
+                f"<td>{escape(error.category)}</td>"
+                f"<td>{escape(error.log_entry.message)}</td>"
+                "</tr>"
+            )
+        change = report.cluster.suspected_change
+        if change:
+            timeline_rows.append(
+                "<tr class='change'>"
+                f"<td>{change.timestamp:%H:%M:%S}</td>"
+                f"<td><code>{escape(change.service)}</code></td>"
+                f"<td>CHANGE ({escape(change.type)})</td>"
+                f"<td>{escape(change.description)}</td>"
+                "</tr>"
+            )
+
+        remediation_html = []
+        for phase, title in (
+            ("immediate", "Immediate"),
+            ("investigation", "Investigation"),
+            ("resolution", "Resolution"),
+        ):
+            actions = report.remediation.by_phase(phase)
+            if not actions:
+                continue
+            items = "".join(
+                "<li>"
+                + escape(action.action)
+                + (f" <code>{escape(action.command)}</code>" if action.command else "")
+                + (
+                    " <span class='flag'>approval required</span>"
+                    if action.requires_approval
+                    else ""
+                )
+                + "</li>"
+                for action in actions
+            )
+            remediation_html.append(f"<h3>{title}</h3><ul>{items}</ul>")
+        prevention_html = "".join(
+            f"<li>{escape(item)}</li>" for item in report.remediation.prevention
+        )
+        similar_html = "".join(
+            "<li>"
+            f"<strong>{escape(match.incident_id)}</strong> "
+            f"({match.similarity:.0%} similar, {escape(match.severity)}) - "
+            f"{escape(match.title)}"
+            + (
+                f"<br><span class='muted'>What worked: "
+                f"{escape('; '.join(match.resolution))}</span>"
+                if match.resolution
+                else ""
+            )
+            + "</li>"
+            for match in report.cluster.similar_incidents
+        )
+        downstream = self.graph.blast_radius(
+            report.root_cause.primary_service, report.cluster.affected_services
+        ) - set(report.cluster.affected_services)
+        services_html = "".join(
+            f"<li><code>{escape(service)}</code> "
+            f"<span class='muted'>{escape(self.graph.tier(service))}</span></li>"
+            for service in report.cluster.affected_services
+        )
+        downstream_html = "".join(
+            f"<li><code>{escape(service)}</code></li>" for service in sorted(downstream)
+        )
+        change_html = ""
+        if change:
+            change_html = (
+                "<h2>What changed?</h2>"
+                f"<p><strong>{escape(change.type)} {escape(change.id)}</strong> at "
+                f"{change.timestamp:%Y-%m-%d %H:%M} on <code>{escape(change.service)}</code></p>"
+                f"<p>{escape(change.description)}</p>"
+                f"<p class='muted'>Link confidence {report.root_cause.change_confidence:.0%}. "
+                f"{escape(report.root_cause.change_reason)}</p>"
+            )
+            if change.rollback:
+                change_html += f"<p>Rollback: <code>{escape(change.rollback)}</code></p>"
+
+        return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{escape(report.title)} - {escape(report.id)}</title>
+<style>
+  :root {{ color-scheme: light; }}
+  body {{ margin: 0; font-family: "Segoe UI", Arial, sans-serif; color: #0f172a;
+         background: #f1f5f9; line-height: 1.55; }}
+  main {{ max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }}
+  .hero {{ background: linear-gradient(120deg, {color}, #0f172a);
+           color: #fff; padding: 28px 30px; border-radius: 16px; }}
+  .hero h1 {{ margin: 0 0 8px; font-size: 1.9rem; }}
+  .badge {{ display: inline-block; background: rgba(255,255,255,.2);
+            padding: 4px 12px; border-radius: 999px; font-weight: 700;
+            letter-spacing: .04em; font-size: .8rem; }}
+  .grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+           margin: 18px 0; }}
+  .metric {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+             padding: 14px 16px; }}
+  .metric span {{ display: block; color: #64748b; font-size: .78rem;
+                  text-transform: uppercase; letter-spacing: .05em; }}
+  .metric strong {{ font-size: 1.25rem; }}
+  section {{ background: #fff; border: 1px solid #e2e8f0; border-radius: 14px;
+             padding: 20px 24px; margin: 16px 0; }}
+  h2 {{ margin-top: 0; font-size: 1.2rem; }}
+  h3 {{ font-size: 1rem; margin-bottom: 6px; }}
+  code {{ background: #f1f5f9; padding: 1px 6px; border-radius: 5px;
+          font-size: .88em; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: .9rem; }}
+  th, td {{ text-align: left; padding: 7px 8px; border-bottom: 1px solid #e2e8f0;
+            vertical-align: top; }}
+  th {{ color: #64748b; font-size: .78rem; text-transform: uppercase; }}
+  tr.change td {{ background: #fef3c7; }}
+  .status {{ white-space: pre-wrap; background: #f8fafc; border: 1px dashed #cbd5e1;
+             border-radius: 10px; padding: 16px; font-family: inherit; }}
+  .muted {{ color: #64748b; font-size: .88rem; }}
+  .flag {{ background: #fef3c7; color: #92400e; padding: 1px 7px;
+           border-radius: 999px; font-size: .72rem; font-weight: 700; }}
+  .two {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
+  @media (max-width: 720px) {{ .grid, .two {{ grid-template-columns: 1fr; }} }}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="badge">{escape(severity.level)} · {severity.score:.0f}/100</span>
+    <span class="badge">baseline {escape(severity.baseline_level)} · {severity.baseline_score:.0f}/100</span>
+    <h1>{escape(report.title)}</h1>
+    <p>{escape(report.id)} · {report.cluster.start:%Y-%m-%d %H:%M} local ·
+    {report.cluster.duration_minutes:.0f} min · {len(report.cluster.errors)} errors</p>
+  </div>
+
+  <div class="grid">
+    <div class="metric"><span>Affected services</span><strong>{len(report.cluster.affected_services)}</strong></div>
+    <div class="metric"><span>Business window</span><strong>{escape(severity.revenue_window or "none")}</strong></div>
+    <div class="metric"><span>Root cause</span><strong>{escape(report.root_cause.primary_category)}</strong></div>
+    <div class="metric"><span>Linked change</span><strong>{escape(change.id if change else "none")}</strong></div>
+  </div>
+
+  <section>
+    <h2>Executive summary</h2>
+    <p>{escape(severity.business_summary)}</p>
+    <p>{escape(report.root_cause.reasoning)}</p>
+    {change_html}
+  </section>
+
+  <section>
+    <h2>Business-aware severity</h2>
+    <p>{escape(severity.justification)}</p>
+    <p class="muted">Factors: {escape(", ".join(f"{name.replace('_', ' ')} {value:.0f}" for name, value in severity.factors.items()))}</p>
+  </section>
+
+  <section>
+    <h2>Timeline</h2>
+    <table>
+      <thead><tr><th>Time</th><th>Service</th><th>Type</th><th>Event</th></tr></thead>
+      <tbody>{''.join(timeline_rows)}</tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="two">
+      <div><h2>Affected services</h2><ul>{services_html}</ul></div>
+      <div><h2>Downstream dependents</h2><ul>{downstream_html or "<li class='muted'>None detected</li>"}</ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Remediation plan</h2>
+    <p class="muted">IncidentX never executes commands. Approval and dry-run are simulated.</p>
+    {''.join(remediation_html)}
+    <h3>Prevention</h3><ul>{prevention_html}</ul>
+  </section>
+
+  <section>
+    <h2>Incident memory</h2>
+    <ul>{similar_html or "<li class='muted'>No similar incident found</li>"}</ul>
+  </section>
+
+  <section>
+    <h2>Plain-English summary</h2>
+    <p><strong>{escape(report.plain_english.headline)}</strong></p>
+    <p><strong>What is broken:</strong> {escape(report.plain_english.what_broken)}</p>
+    <p><strong>Who is affected:</strong> {escape(report.plain_english.who_affected)}</p>
+    <p><strong>What we are doing:</strong> {escape(report.plain_english.what_we_are_doing)}</p>
+  </section>
+
+  <section>
+    <h2>Ready-to-send customer update</h2>
+    <div class="status">{escape(report.customer_status_update)}</div>
+  </section>
+
+  <p class="muted">Generated by IncidentX. Rules are the fast path; every conclusion links back to evidence.</p>
+</main>
+</body>
+</html>
+"""

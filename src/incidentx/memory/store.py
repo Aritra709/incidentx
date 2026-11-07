@@ -9,7 +9,6 @@ from typing import Any, Dict, Iterable, List, Optional, Set
 from ..config import DEFAULT_DATA_DIR
 from ..models import IncidentCluster, IncidentReport, SimilarIncident
 
-
 TOKEN_RE = re.compile(r"[a-z0-9]+")
 MEMORY_STOPWORDS = {
     "the",
@@ -97,6 +96,8 @@ class MemoryStore:
         matches: List[SimilarIncident] = []
         for entry in self.load():
             if entry.get("status") == "open":
+                continue
+            if entry.get("incident_id") == cluster.id:
                 continue
             entry_categories = set(entry.get("categories", []))
             entry_services = set(entry.get("services", []))

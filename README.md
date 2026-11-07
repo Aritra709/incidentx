@@ -6,7 +6,9 @@ IncidentX analyzes logs and a small changelog, finds incidents, explains what ch
 
 Built for Agentic Chase PS1 — *IncidentX: Autonomous IT Incident Response Agent*.
 
-> Status: working vertical slice. Ingestion, rule detection, change correlation, business-aware severity, remediation proposals, incident memory, reports, CLI, and demo data are implemented. The Streamlit UI and automated tests are the next commits.
+> Status: end-to-end vertical slice. Ingestion, rule classification, optional LLM review, change correlation, business-aware severity, remediation proposals, incident memory, Markdown/JSON/HTML reports, CLI, Streamlit UI, FastAPI service, and automated tests are implemented.
+
+**See a real output:** [demo report](docs/example/INC-20261107-1954-AF8D.md) · [HTML version](docs/example/INC-20261107-1954-AF8D.html)
 
 ## Why it is different
 
@@ -27,18 +29,20 @@ The included data (`data/demo/`) recreates one incident:
 - `20:00` — the Saturday flash sale starts; failures spike.
 - IncidentX links the errors to the deploy, rates the incident **CRITICAL** (it would be **MEDIUM** without the sale context), proposes a rollback, and writes the customer status update.
 
+Demo result: `INC-20261107-1954-AF8D` · CRITICAL 82/100 (baseline MEDIUM 54/100) · root cause `CONNECTION_POOL_EXHAUSTED` in `checkout-api` at 89% confidence · linked change `chg-20261107-001` at 90% · 3 services affected · similar incident from incident memory at 46%.
+
 ## Quickstart (Windows PowerShell)
 
 ```powershell
 cd incidentx
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e .[dev]
+pip install -e ".[dev]"
 
 incidentx demo
 ```
 
-Reports are written to `reports/` as Markdown and JSON.
+Reports are written to `reports/` as Markdown, JSON, and HTML.
 
 Analyze your own logs:
 
@@ -47,6 +51,46 @@ incidentx analyze --logs C:\path\to\app.log --changes C:\path\to\changes.yaml
 ```
 
 Supported logs: TXT, JSON/JSONL, CSV. Supported changelogs: YAML, JSON, CSV.
+
+## Streamlit UI
+
+```powershell
+streamlit run app.py
+```
+
+Opens at `http://localhost:8501`. The demo analysis runs automatically, then you can upload logs and a changelog from the sidebar. Four tabs cover the whole response:
+
+- **Engineer view** — severity banner, timeline with the change marker, service health, root-cause reasoning, incident memory, Markdown/JSON/HTML downloads.
+- **Plain English** — what happened, who is affected, what happens next, and a copy-ready customer status update.
+- **Cascade graph** — the service dependency graph with the failure path highlighted, blast radius, and Graphviz DOT export.
+- **Remediation & approvals** — immediate/short-term/prevention actions, command preview, simulated dry-run and approval gates, and "mark resolved" into incident memory.
+
+## API
+
+```powershell
+incidentx serve-api
+# http://127.0.0.1:8000 — interactive docs at /docs
+```
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/v1/health` | Version, LLM availability, patterns/services/memory counts |
+| `GET` | `/api/v1/patterns` | Known error categories and their metadata |
+| `GET` | `/api/v1/runbooks/{pattern}` | Runbook content for an error category |
+| `GET` | `/api/v1/business-profile` | Business hours, revenue windows, critical services |
+| `POST` | `/api/v1/analyze` | Analyze raw logs plus optional changelog text |
+
+```powershell
+$body = @{
+  logs = [string](Get-Content data\demo\app.log -Raw)
+  changes = [string](Get-Content data\demo\changes.yaml -Raw)
+  options = @{ use_llm = $false }
+} | ConvertTo-Json -Depth 5
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/analyze -Method Post `
+  -ContentType "application/json" -Body $body
+```
+
+The API is read-only: it returns proposals and reports, never executes commands.
 
 ## Optional LLM layer
 
@@ -76,16 +120,44 @@ changelog (YAML) ────┘                                      │
 ## Project layout
 
 ```text
-config/              error patterns, causal rules, service catalog, business context
-knowledge_base/      remediation rules, error catalog, runbooks
-data/demo/           live-sale logs + changelog
-data/seed_memory.json
-src/incidentx/       pipeline modules (ingestion, classifier, correlator, severity, ...)
-scripts/demo.py      demo entry point
-tests/               unit + integration tests
-app.py               Streamlit UI (next)
+app.py                 Streamlit UI
+config/                error patterns, causal rules, service catalog, business context
+knowledge_base/        remediation rules, error catalog, runbooks
+data/demo/             live-sale logs + changelog
+data/seed_memory.json  seed incident memory
+docs/example/          committed sample reports (MD/JSON/HTML)
+scripts/demo.py        demo entry point
+src/incidentx/         pipeline modules + FastAPI service
+tests/                 unit, integration, and API tests
 ```
+
+## Testing and linting
+
+```powershell
+pytest
+ruff check src app.py tests scripts
+```
+
+28 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, report writing, and the API.
+
+## Design notes
+
+- **Deterministic core.** Regex rules, causal ordering, a service graph, and a weighted severity model. No network call is required.
+- **Grounded LLM.** The optional LLM only reviews errors the rules cannot classify; it must return one of the known categories or the result is discarded.
+- **Explainable severity.** Every score includes factor breakdowns, the baseline without business context, and a human-readable justification.
+- **Duplicate-safe.** Errors are merged by signature and trace, and incidents are clustered only when services are causally connected within a time window.
+- **Memory that does not cheat.** Incidents never match themselves; stored resolutions feed similar-incident hints.
 
 ## Safety
 
 IncidentX is read-only. It generates commands for humans to review and simulates approvals/dry-runs. It does not execute shell commands or modify production state.
+
+## Roadmap
+
+- Live connectors (file tail, webhook, CloudWatch/Datadog exporters)
+- Policy engine for safe auto-remediation after explicit approval
+- Status-page and pager integrations
+- Historical reliability analytics and alert tuning
+- Multi-tenant deployment with RBAC
+
+Out of scope for this PS1 slice by design: Kafka, Docker orchestration, Prometheus, and multi-tenancy.

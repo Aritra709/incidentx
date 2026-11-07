@@ -6,7 +6,6 @@ from typing import Dict, Iterable, List, Optional
 
 from ..models import LogEntry
 
-
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 CARD_RE = re.compile(r"\b(?:\d[ -]*?){13,19}\b")
 BEARER_RE = re.compile(r"(?i)\b(bearer|token|api[_-]?key)\s*[:=]?\s*[A-Za-z0-9._\-]{12,}")
