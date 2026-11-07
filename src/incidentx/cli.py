@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+from .classifier.llm import LLMReasoner
 from .pipeline.orchestrator import IncidentXPipeline
 
 
@@ -132,6 +133,22 @@ def command_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_llm_check(args: argparse.Namespace) -> int:
+    llm = LLMReasoner()
+    print(f"Provider: {llm.provider}")
+    print(f"Model: {llm.settings.get('model', 'unknown')}")
+    print(f"Enabled: {'yes' if llm.enabled else 'no'}")
+    if not llm.enabled:
+        print("Set GEMINI_API_KEY (or OPENAI_API_KEY) in .env or the environment.")
+        return 1
+    reply = llm.ping()
+    if reply is None:
+        print("LLM request failed. Check the key, model name, and network.")
+        return 1
+    print(f"LLM response: {reply}")
+    return 0
+
+
 def command_memory(args: argparse.Namespace) -> int:
     pipeline = IncidentXPipeline()
     entries = pipeline.memory.load()
@@ -179,6 +196,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     memory = subparsers.add_parser("memory", help="List stored incidents.")
     memory.set_defaults(func=command_memory)
+
+    llm_check = subparsers.add_parser("llm-check", help="Check optional LLM connectivity.")
+    llm_check.set_defaults(func=command_llm_check)
 
     serve = subparsers.add_parser("serve-api", help="Run the FastAPI service.")
     serve.add_argument("--host", default="127.0.0.1")

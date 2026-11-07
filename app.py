@@ -581,8 +581,8 @@ def sidebar_inputs(pipeline: IncidentXPipeline):
         value=llm_available,
         disabled=not llm_available,
         help=(
-            "Configure OPENAI_API_KEY (or a local OpenAI-compatible endpoint) to enable. "
-            "Rules remain the fast path."
+            "Configure GEMINI_API_KEY (or OPENAI_API_KEY / a local OpenAI-compatible "
+            "endpoint) to enable. Rules remain the fast path."
         ),
     )
     if not llm_available:

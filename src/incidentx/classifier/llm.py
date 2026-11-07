@@ -14,13 +14,14 @@ LOGGER = logging.getLogger(__name__)
 class LLMReasoner:
     """Optional LLM layer. Used only for unknown errors and explanations.
 
-    Works with any OpenAI-compatible chat-completions endpoint, including a
-    local Ollama server. If no credentials are configured everything falls
-    back to the deterministic rules/templates.
+    Supports Google Gemini natively and any OpenAI-compatible chat-completions
+    endpoint, including a local Ollama server. If no credentials are configured
+    everything falls back to the deterministic rules/templates.
     """
 
     def __init__(self, settings: Optional[Dict[str, Any]] = None):
         self.settings = settings or llm_settings()
+        self.provider = str(self.settings.get("provider") or "openai").lower()
         self.enabled = bool(self.settings.get("enabled"))
         self.used = False
         self._failed = False
@@ -33,6 +34,33 @@ class LLMReasoner:
     def reset_health(self) -> None:
         self._failed = False
 
+    @staticmethod
+    def _gemini_content(data: Dict[str, Any]) -> str:
+        candidates = data.get("candidates") or []
+        if not candidates:
+            return ""
+        parts = (candidates[0].get("content") or {}).get("parts") or []
+        return "".join(str(part.get("text", "")) for part in parts)
+
+    @staticmethod
+    def _parse_json_object(content: str) -> Dict[str, Any]:
+        text = content.strip()
+        if text.startswith("```"):
+            text = text.strip("`").strip()
+            if text.lower().startswith("json"):
+                text = text[4:].lstrip()
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            start = text.find("{")
+            end = text.rfind("}")
+            if start == -1 or end <= start:
+                raise
+            data = json.loads(text[start : end + 1])
+        if not isinstance(data, dict):
+            raise ValueError("LLM response is not a JSON object")
+        return data
+
     def _chat(
         self,
         system: str,
@@ -42,20 +70,38 @@ class LLMReasoner:
     ) -> Optional[str]:
         if not self.available:
             return None
-        url = f"{self.settings['base_url']}/chat/completions"
-        headers = {"Content-Type": "application/json"}
-        api_key = self.settings.get("api_key")
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        payload = {
-            "model": self.settings["model"],
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
+        if self.provider == "gemini":
+            url = (
+                f"{self.settings['base_url']}/models/"
+                f"{self.settings['model']}:generateContent"
+            )
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": self.settings.get("api_key", ""),
+            }
+            payload = {
+                "systemInstruction": {"parts": [{"text": system}]},
+                "contents": [{"role": "user", "parts": [{"text": user}]}],
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": max_tokens,
+                },
+            }
+        else:
+            url = f"{self.settings['base_url']}/chat/completions"
+            headers = {"Content-Type": "application/json"}
+            api_key = self.settings.get("api_key")
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            payload = {
+                "model": self.settings["model"],
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
         try:
             response = requests.post(
                 url,
@@ -65,13 +111,28 @@ class LLMReasoner:
             )
             response.raise_for_status()
             data = response.json()
-            content = data["choices"][0]["message"]["content"]
+            if self.provider == "gemini":
+                content = self._gemini_content(data)
+            else:
+                content = data["choices"][0]["message"]["content"]
+            if not content:
+                return None
             self.used = True
             return content.strip()
         except Exception as exc:  # pragma: no cover - depends on external service
             self._failed = True
             LOGGER.warning("LLM request failed; using rules only this run: %s", exc)
             return None
+
+    def ping(self) -> Optional[str]:
+        """Send a tiny request to verify credentials and connectivity."""
+        if not self.available:
+            return None
+        return self._chat(
+            "You are a connectivity check.",
+            "Reply with exactly OK.",
+            max_tokens=64,
+        )
 
     def classify_error(
         self,
@@ -102,10 +163,7 @@ class LLMReasoner:
         if not content:
             return None
         try:
-            if content.startswith("```"):
-                content = content.strip("`")
-                content = content.replace("json\n", "", 1)
-            data = json.loads(content)
+            data = self._parse_json_object(content)
             category = str(data.get("category", "")).upper()
             if category not in allowed_categories:
                 return None

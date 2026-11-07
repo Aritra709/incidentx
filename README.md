@@ -20,7 +20,7 @@ Built for Agentic Chase PS1 — *IncidentX: Autonomous IT Incident Response Agen
 4. **Approval-gated fixes** — the agent proposes a rollback with a dry-run, but a human must approve it. Commands are never executed.
 5. **Incident memory** — resolved incidents are matched by category, signature, and services: *"this looks like the one from last week; this fix worked."*
 
-Rules are the fast path. An optional OpenAI-compatible LLM reviews unknown errors and adds a grounded explanation. Without credentials, everything still works deterministically.
+Rules are the fast path. An optional Gemini or OpenAI-compatible LLM reviews unknown errors and adds a grounded explanation. Without credentials, everything still works deterministically.
 
 ## Demo story
 
@@ -96,15 +96,32 @@ The API is read-only: it returns proposals and reports, never executes commands.
 
 ## Optional LLM layer
 
+Gemini is selected automatically when `GEMINI_API_KEY` is set. Create a local `.env` from `.env.example` (`.env` is gitignored) and add your key:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+# GEMINI_API_KEY=your-key
+# GEMINI_MODEL=gemini-2.5-flash
+incidentx demo
+```
+
+Check the connection before running a full analysis:
+
+```powershell
+incidentx llm-check
+```
+
+OpenAI-compatible endpoints still work:
+
 ```powershell
 $env:OPENAI_API_KEY = "..."
 $env:INCIDENTX_LLM_MODEL = "gpt-4o-mini"
 # or point at a local OpenAI-compatible server:
 # $env:OPENAI_BASE_URL = "http://localhost:11434/v1"
-incidentx demo
 ```
 
-Set `INCIDENTX_LLM_ENABLED=false` to force rules-only mode. If an LLM request fails, that run automatically finishes on rules alone instead of retrying the endpoint for every unknown error.
+If both keys are present, Gemini wins by default. Set `INCIDENTX_LLM_PROVIDER=gemini` or `INCIDENTX_LLM_PROVIDER=openai` to choose explicitly. Set `INCIDENTX_LLM_ENABLED=false` to force rules-only mode. If an LLM request fails, that run automatically finishes on rules alone instead of retrying the endpoint for every unknown error.
 
 ## Pipeline
 
@@ -144,7 +161,7 @@ ruff check src app.py tests scripts
 python scripts/benchmark.py --lines 10000 --runs 5 --api
 ```
 
-52 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, the API (including concurrent analyze requests and mocked LLM fallback), and the Streamlit UI dry-run/approval flow.
+58 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, the API (including concurrent analyze requests), Gemini/OpenAI-compatible LLM paths, and the Streamlit UI dry-run/approval flow.
 
 Local benchmark: a 10,000-line mixed log runs end-to-end in about 0.99s median; the demo analyze endpoint has a p95 of 27.1ms. Methodology and full results are in [docs/EVALUATION.md](docs/EVALUATION.md).
 

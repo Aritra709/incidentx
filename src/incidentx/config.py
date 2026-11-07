@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
+from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = PROJECT_ROOT / "src" / "incidentx"
+
+load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 DEFAULT_CONFIG_DIR = PROJECT_ROOT / "config"
 DEFAULT_KB_DIR = PROJECT_ROOT / "knowledge_base"
@@ -41,21 +44,52 @@ def load_knowledge_base(name: str, kb_dir: Optional[Path] = None) -> Dict[str, A
 @lru_cache(maxsize=1)
 def llm_settings() -> Dict[str, Any]:
     enabled_raw = os.getenv("INCIDENTX_LLM_ENABLED", "auto").strip().lower()
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    base_url = os.getenv(
-        "OPENAI_BASE_URL", "https://api.openai.com/v1"
-    ).strip().rstrip("/")
-    model = os.getenv("INCIDENTX_LLM_MODEL", "gpt-4o-mini").strip()
+    provider_raw = os.getenv("INCIDENTX_LLM_PROVIDER", "auto").strip().lower()
+
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+    if provider_raw in {"gemini", "google", "google-gemini"}:
+        provider = "gemini"
+    elif provider_raw in {"openai", "openai-compatible", "compatible", "ollama"}:
+        provider = "openai"
+    else:
+        provider = "gemini" if gemini_key else "openai"
+
+    if provider == "gemini":
+        api_key = gemini_key
+        base_url = os.getenv(
+            "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"
+        ).strip().rstrip("/")
+        model = (
+            os.getenv("GEMINI_MODEL", "").strip()
+            or os.getenv("INCIDENTX_LLM_MODEL", "").strip()
+            or "gemini-2.5-flash"
+        )
+    else:
+        api_key = openai_key
+        base_url = os.getenv(
+            "OPENAI_BASE_URL", "https://api.openai.com/v1"
+        ).strip().rstrip("/")
+        model = (
+            os.getenv("INCIDENTX_LLM_MODEL", "").strip()
+            or os.getenv("OPENAI_MODEL", "").strip()
+            or "gpt-4o-mini"
+        )
+
+    local_endpoint = provider == "openai" and (
+        "localhost" in base_url or "127.0.0.1" in base_url
+    )
+    auto_enabled = bool(api_key) or local_endpoint
 
     if enabled_raw in {"0", "false", "no", "off"}:
         enabled = False
-    elif enabled_raw in {"1", "true", "yes", "on"}:
-        enabled = bool(api_key or "localhost" in base_url or "127.0.0.1" in base_url)
     else:
-        enabled = bool(api_key)
+        enabled = auto_enabled
 
     return {
         "enabled": enabled,
+        "provider": provider,
         "api_key": api_key,
         "base_url": base_url,
         "model": model,
