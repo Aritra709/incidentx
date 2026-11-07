@@ -144,7 +144,7 @@ ruff check src app.py tests scripts
 python scripts/benchmark.py --lines 10000 --runs 5 --api
 ```
 
-37 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, and the API (including concurrent analyze requests).
+43 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, and the API (including concurrent analyze requests and mocked LLM fallback).
 
 Local benchmark: a 10,000-line mixed log runs end-to-end in about 0.96s median; the demo analyze endpoint has a p95 of 25.5ms. Methodology and full results are in [docs/EVALUATION.md](docs/EVALUATION.md).
 
