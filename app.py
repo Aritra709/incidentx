@@ -380,6 +380,13 @@ def render_cascade(pipeline: IncidentXPipeline, report: IncidentReport) -> None:
         "arrows point from a dependency to the service that depends on it."
     )
     st.graphviz_chart(dot, width="stretch")
+    st.download_button(
+        "Download cascade as DOT",
+        data=dot,
+        file_name=f"{report.id}-cascade.dot",
+        mime="text/vnd.graphviz",
+        key=f"export-dot-{report.id}",
+    )
     render_services(pipeline, report)
 
 

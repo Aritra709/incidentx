@@ -14,6 +14,8 @@ def test_app_loads_demo_without_errors():
     button_labels = [button.label for button in app.button]
     assert "Dry-run" in button_labels
     assert "Approve (simulated)" in button_labels
+    download_labels = [item.label for item in app.get("download_button")]
+    assert "Download cascade as DOT" in download_labels
 
 
 def test_app_dry_run_is_simulated():
