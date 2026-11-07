@@ -18,8 +18,8 @@ pytest
 | Error detection on known patterns | >90% | 30/30 curated signatures (100%) | `tests/test_pattern_coverage.py` |
 | Cascade correlation precision | >85% | 5/5 hand-labeled fixture scenarios | demo + `tests/fixtures/` |
 | Severity alignment | >80% | Demo matches hand triage: CRITICAL 82 vs MEDIUM 54 baseline | `tests/test_pipeline.py` |
-| Report generation for 10k lines | <2s | 0.96s median end-to-end (min 0.95, max 0.99) | `scripts/benchmark.py` |
-| API latency p95 | <500ms | 6.6ms health, 25.5ms analyze | `scripts/benchmark.py --api` |
+| Report generation for 10k lines | <2s | 0.99s median end-to-end (min 0.97, max 1.08) | `scripts/benchmark.py` |
+| API latency p95 | <500ms | 7.7ms health, 27.1ms analyze | `scripts/benchmark.py --api` |
 
 Pattern coverage uses one representative message for each of the 30 configured categories. It proves every category is reachable and correctly wired; it is not an independent labeled corpus. Correlation and severity figures are similarly small, hand-labeled fixtures rather than a large benchmark set.
 
@@ -42,10 +42,10 @@ Representative result:
   "severity": "CRITICAL",
   "severity_score": 82.0,
   "runs": 5,
-  "min_ms": 945.3,
-  "median_ms": 962.6,
-  "max_ms": 991.4,
-  "write_reports_ms": 40.0,
+  "min_ms": 972.4,
+  "median_ms": 992.4,
+  "max_ms": 1078.1,
+  "write_reports_ms": 40.8,
   "report_bytes": 882937
 }
 ```
@@ -62,10 +62,10 @@ python scripts/benchmark.py --api
 
 | Endpoint | p50 | p95 | max |
 | --- | --- | --- | --- |
-| `GET /api/v1/health` | 5.8ms | 6.6ms | 185.6ms |
-| `POST /api/v1/analyze` (demo) | 23.6ms | 25.5ms | 27.0ms |
+| `GET /api/v1/health` | 6.0ms | 7.7ms | 202.4ms |
+| `POST /api/v1/analyze` (demo) | 24.4ms | 27.1ms | 28.8ms |
 
-The first request includes process warm-up, which explains the 185ms max on health.
+The first request includes process warm-up, which explains the 202ms max on health.
 
 ## Demo correctness
 
