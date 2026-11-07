@@ -8,7 +8,7 @@ Measured on 2026-11-07 on a Windows development laptop (AMD Ryzen 5 3500U, 16 GB
 pytest
 ```
 
-`36 passed` covering ingestion (TXT/JSON/CSV), rule classification, correlation, trace-aware clustering, change linking, business-aware severity, remediation, incident memory, Markdown/JSON/HTML reports, and the FastAPI service.
+`37 passed` covering ingestion (TXT/JSON/CSV), rule classification, correlation, trace-aware clustering, change linking, business-aware severity, remediation, incident memory, Markdown/JSON/HTML reports, and the FastAPI service, including concurrent analyze requests.
 
 ## Success criteria
 

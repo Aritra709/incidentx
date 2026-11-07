@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi.testclient import TestClient
 
 from incidentx.api.routes import app
@@ -84,6 +86,23 @@ def test_analyze_can_skip_remediation():
     incident = response.json()["incidents"][0]
     assert incident["remediation"] == []
     assert incident["prevention"] == []
+
+
+def test_analyze_concurrent_requests():
+    logs, changes = demo_text()
+    payload = {
+        "logs": logs,
+        "changes": changes,
+        "options": {"use_llm": False},
+    }
+
+    def call(_):
+        response = client.post("/api/v1/analyze", json=payload)
+        return response.status_code, response.json()["incidents"][0]["id"]
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(call, range(4)))
+    assert results == [(200, "INC-20261107-1954-AF8D")] * 4
 
 
 def test_business_profile():
