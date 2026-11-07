@@ -208,6 +208,7 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
             lookback_minutes=request.options.lookback_minutes,
             use_llm=request.options.use_llm,
             persist_reports=False,
+            include_remediation=request.options.include_remediation,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -1,0 +1,30 @@
+[
+  {
+    "@timestamp": "2026-11-05T14:00:01Z",
+    "severity": "error",
+    "service_name": "web-frontend",
+    "msg": "Checkout request failed: upstream timeout after 5000ms",
+    "trace": {"id": "trace-a"}
+  },
+  {
+    "@timestamp": "2026-11-05T14:00:03Z",
+    "severity": "warn",
+    "service_name": "web-frontend",
+    "msg": "request timed out after 5000ms",
+    "trace": {"id": "trace-a"}
+  },
+  {
+    "@timestamp": "2026-11-05T14:00:04Z",
+    "severity": "error",
+    "service_name": "web-frontend",
+    "msg": "503 Service Unavailable for POST /checkout",
+    "trace": {"id": "trace-a"}
+  },
+  {
+    "@timestamp": "2026-11-05T14:00:07Z",
+    "severity": "error",
+    "service_name": "mobile-app",
+    "msg": "upstream request timeout",
+    "trace": {"id": "trace-a"}
+  }
+]

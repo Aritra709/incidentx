@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from functools import lru_cache
 from typing import Dict, Iterable, List, Optional
 
 from ..models import LogEntry
@@ -13,6 +14,7 @@ IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 WHITESPACE_RE = re.compile(r"\s+")
 
 
+@lru_cache(maxsize=8192)
 def clean_message(message: str) -> str:
     if not message:
         return ""

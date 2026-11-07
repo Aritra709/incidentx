@@ -19,7 +19,7 @@ from ..ingestion.parser import parse_file, parse_text
 from ..knowledge_base.loader import KnowledgeBase
 from ..knowledge_base.remediation import RemediationEngine
 from ..memory.store import MemoryStore
-from ..models import AnalysisResult, IncidentReport, LogFormat
+from ..models import AnalysisResult, IncidentReport, LogFormat, RemediationPlan
 from ..preprocessor.normalizer import build_service_alias_map, normalize_entries
 from ..reporter.generator import IncidentReporter
 from ..service_graph import ServiceGraph
@@ -102,6 +102,7 @@ class IncidentXPipeline:
         persist_reports: bool = False,
         output_dir: Optional[Path | str] = None,
         remember: bool = False,
+        include_remediation: bool = True,
     ) -> AnalysisResult:
         started = time.perf_counter()
         warnings: List[str] = []
@@ -140,7 +141,11 @@ class IncidentXPipeline:
             root_cause = self.correlator.identify_root_cause(cluster, change_matches)
             cluster.root_cause = root_cause
             severity = self.assessor.assess(cluster)
-            remediation = self.remediator.build_plan(cluster, severity, root_cause)
+            remediation = (
+                self.remediator.build_plan(cluster, severity, root_cause)
+                if include_remediation
+                else RemediationPlan()
+            )
             similar = self.memory.find_similar(cluster)
 
             llm_explanation = ""

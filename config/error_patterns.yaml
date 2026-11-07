@@ -9,8 +9,8 @@ patterns:
       - "connection refused"
       - "could not connect to (the )?database"
       - "failed to connect to (the )?database"
-      - "database .* unavailable"
-      - "database connection .* (failed|timeout|timed out)"
+      - "database .*unavailable"
+      - "database connection .*(failed|timeout|timed out)"
       - "database connection (failed|timeout|timed out)"
       - "dial tcp .*:(5432|3306|27017)"
       - "cannot connect to (postgres|mysql|mongodb)"
@@ -25,7 +25,7 @@ patterns:
       - "could not acquire connection from (the )?pool"
       - "pool exhausted"
       - "too many connections"
-      - "connection pool .* (full|max|limit)"
+      - "connection pool .*(full|max|limit)"
       - "waiting=\\d+"
 
   QUERY_FAILED:
@@ -56,7 +56,7 @@ patterns:
     services: ["api*", "gateway", "proxy", "web-*", "mobile-*", "checkout-*", "payments-*"]
     regex:
       - "(upstream )?request (timed out|timeout)"
-      - "upstream .* timeout"
+      - "upstream .*timeout"
       - "timed out after \\d+ ?ms"
       - "timeout after \\d+ ?ms"
       - "deadline exceeded"
@@ -69,7 +69,7 @@ patterns:
       - "no space left on device"
       - "disk full"
       - "insufficient disk space"
-      - "filesystem .* full"
+      - "filesystem .*full"
 
   MEMORY_EXHAUSTION:
     family: INFRASTRUCTURE
@@ -89,7 +89,7 @@ patterns:
     regex:
       - "cpu throttl"
       - "high cpu"
-      - "load average .* (high|critical)"
+      - "load average .*(high|critical)"
 
   OOM_KILLER:
     family: INFRASTRUCTURE
@@ -98,7 +98,7 @@ patterns:
     regex:
       - "oom killer"
       - "oom-kill"
-      - "killed process .* memory"
+      - "killed process .*memory"
 
   NULL_POINTER:
     family: APPLICATION
@@ -155,17 +155,17 @@ patterns:
     description: "A third-party or external API is unavailable."
     levels: [ERROR, CRITICAL]
     regex:
-      - "external api .* (down|unavailable)"
-      - "third.party .* unavailable"
-      - "payment provider .* unavailable"
+      - "external api .*(down|unavailable)"
+      - "third.party .*unavailable"
+      - "payment provider .*unavailable"
 
   THIRD_PARTY_TIMEOUT:
     family: DEPENDENCY
     description: "A third-party API call timed out."
     levels: [ERROR, WARN]
     regex:
-      - "third.party .* (timeout|timed out)"
-      - "external .* (timeout|timed out)"
+      - "third.party .*(timeout|timed out)"
+      - "external .*(timeout|timed out)"
 
   MESSAGE_QUEUE_BACKUP:
     family: DEPENDENCY
@@ -183,7 +183,7 @@ patterns:
     levels: [ERROR, CRITICAL]
     regex:
       - "service unavailable"
-      - "upstream .* unavailable"
+      - "upstream .*unavailable"
       - "\\b50[234]\\b"
       - "bad gateway"
       - "connection reset by peer"
@@ -195,8 +195,8 @@ patterns:
     levels: [ERROR, CRITICAL, FATAL]
     regex:
       - "missing config"
-      - "config .* not found"
-      - "environment variable .* not set"
+      - "config .*not found"
+      - "environment variable .*not set"
 
   INVALID_CONFIG:
     family: CONFIGURATION
@@ -212,7 +212,7 @@ patterns:
     description: "A feature flag could not be evaluated."
     levels: [WARN, ERROR]
     regex:
-      - "feature flag .* (error|missing)"
+      - "feature flag .*(error|missing)"
       - "unknown feature flag"
 
   UNAUTHORIZED_ACCESS:
@@ -249,8 +249,8 @@ patterns:
     levels: [WARN, ERROR, CRITICAL]
     regex:
       - "certificate (has )?expired"
-      - "tls .* expired"
-      - "ssl .* expired"
+      - "tls .*expired"
+      - "ssl .*expired"
 
   LOG_WRITE_FAILURE:
     family: INFRASTRUCTURE
@@ -266,7 +266,7 @@ patterns:
     levels: [WARN, ERROR]
     regex:
       - "cache write failed"
-      - "redis .* write .* fail"
+      - "redis .*write .*fail"
 
   BACKUP_FAILURE:
     family: INFRASTRUCTURE
@@ -274,7 +274,7 @@ patterns:
     levels: [ERROR, CRITICAL]
     regex:
       - "backup failed"
-      - "backup .* failure"
+      - "backup .*failure"
 
   SERVICE_CRASH:
     family: APPLICATION
@@ -291,9 +291,9 @@ patterns:
     description: "A deployment or rollout failed."
     levels: [ERROR, CRITICAL]
     regex:
-      - "deployment .* failed"
-      - "rollout .* failed"
-      - "deploy .* failed"
+      - "deployment .*failed"
+      - "rollout .*failed"
+      - "deploy .*failed"
 
 # Generic hints used when an ERROR/WARN line matches no rule above.
 fallback_categories:

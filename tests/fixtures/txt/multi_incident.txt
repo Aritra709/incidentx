@@ -1,0 +1,9 @@
+2026-11-06 09:05:12 ERROR    [payments-db] No space left on device while writing WAL segment
+2026-11-06 09:05:14 CRITICAL [payments-db] filesystem /var/lib/postgresql is full
+2026-11-06 09:05:18 ERROR    [payments-db] failed to write log: no space left on device
+2026-11-06 09:05:22 ERROR    [payments-api] upstream payments-db unavailable
+2026-11-06 09:05:25 ERROR    [payments-api] request timed out after 3000ms
+2026-11-06 15:20:01 WARN     [auth-service] authentication failed for user admin
+2026-11-06 15:20:03 WARN     [auth-service] multiple failed login attempts detected, possible brute force
+2026-11-06 15:20:05 ERROR    [auth-service] unauthorized access attempt from 203.0.113.9
+2026-11-06 15:20:07 ERROR    [auth-service] authentication failed: invalid credentials

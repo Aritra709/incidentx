@@ -70,6 +70,22 @@ def test_analyze_rejects_empty_logs():
     assert response.status_code == 400
 
 
+def test_analyze_can_skip_remediation():
+    logs, changes = demo_text()
+    response = client.post(
+        "/api/v1/analyze",
+        json={
+            "logs": logs,
+            "changes": changes,
+            "options": {"use_llm": False, "include_remediation": False},
+        },
+    )
+    assert response.status_code == 200
+    incident = response.json()["incidents"][0]
+    assert incident["remediation"] == []
+    assert incident["prevention"] == []
+
+
 def test_business_profile():
     response = client.get("/api/v1/business-profile")
     assert response.status_code == 200

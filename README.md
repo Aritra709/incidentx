@@ -10,7 +10,7 @@ Built for Agentic Chase PS1 — *IncidentX: Autonomous IT Incident Response Agen
 
 > Status: end-to-end vertical slice. Ingestion, rule classification, optional LLM review, change correlation, business-aware severity, remediation proposals, incident memory, Markdown/JSON/HTML reports, CLI, Streamlit UI, FastAPI service, and automated tests are implemented.
 
-**See a real output:** [demo report](docs/example/INC-20261107-1954-AF8D.md) · [HTML version](docs/example/INC-20261107-1954-AF8D.html)
+**See a real output:** [demo report](docs/example/INC-20261107-1954-AF8D.md) · [HTML version](docs/example/INC-20261107-1954-AF8D.html) · [evaluation results](docs/EVALUATION.md)
 
 ## Why it is different
 
@@ -92,7 +92,7 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/api/v1/analyze -Method Post `
   -ContentType "application/json" -Body $body
 ```
 
-The API is read-only: it returns proposals and reports, never executes commands.
+The API is read-only: it returns proposals and reports, never executes commands. Set `options.include_remediation` to `false` to omit remediation proposals and prevention steps from the response.
 
 ## Optional LLM layer
 
@@ -128,8 +128,11 @@ knowledge_base/        remediation rules, error catalog, runbooks
 data/demo/             live-sale logs + changelog
 data/seed_memory.json  seed incident memory
 docs/example/          committed sample reports (MD/JSON/HTML)
+docs/EVALUATION.md     benchmark and test results
 scripts/demo.py        demo entry point
+scripts/benchmark.py   10k-line pipeline and API latency benchmark
 src/incidentx/         pipeline modules + FastAPI service
+tests/fixtures/        TXT, JSON, and CSV scenarios
 tests/                 unit, integration, and API tests
 ```
 
@@ -138,9 +141,12 @@ tests/                 unit, integration, and API tests
 ```powershell
 pytest
 ruff check src app.py tests scripts
+python scripts/benchmark.py --lines 10000 --runs 5 --api
 ```
 
-28 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, report writing, and the API.
+36 tests cover ingestion, classification, correlation, change linking, remediation, incident memory, pattern coverage, report writing, and the API.
+
+Local benchmark: a 10,000-line mixed log runs end-to-end in about 0.96s median; the demo analyze endpoint has a p95 of 25.5ms. Methodology and full results are in [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Design notes
 

@@ -103,6 +103,25 @@ def parse_timestamp(value: Any, default_year: Optional[int] = None) -> Optional[
             return datetime.fromtimestamp(seconds)
         except (OverflowError, OSError, ValueError):
             pass
+    for fmt in (
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S.%f",
+    ):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            pass
+    if text.endswith("Z"):
+        try:
+            return _to_naive(datetime.fromisoformat(text[:-1] + "+00:00"))
+        except ValueError:
+            pass
+    try:
+        return _to_naive(datetime.fromisoformat(text))
+    except ValueError:
+        pass
     try:
         default = datetime(default_year or datetime.now().year, 1, 1)
         return _to_naive(date_parser.parse(text, default=default))

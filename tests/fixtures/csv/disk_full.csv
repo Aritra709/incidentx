@@ -1,0 +1,5 @@
+timestamp,level,service,message
+2026-11-04 11:02:01,ERROR,admin-dashboard,No space left on device
+2026-11-04 11:02:03,CRITICAL,admin-dashboard,filesystem /var/log is full
+2026-11-04 11:02:05,ERROR,admin-dashboard,failed to write log: disk full
+2026-11-04 11:02:07,ERROR,admin-dashboard,failed to execute query: disk full

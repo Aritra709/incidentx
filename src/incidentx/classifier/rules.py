@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from fnmatch import fnmatch
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -17,6 +18,7 @@ QUOTED_RE = re.compile(r"(['\"])(?:(?!\1).){1,120}\1")
 NON_WORD_RE = re.compile(r"[^a-z0-9]+")
 
 
+@lru_cache(maxsize=8192)
 def build_signature(message: str, limit: int = 180) -> str:
     text = (message or "").lower()
     text = UUID_RE.sub("<id>", text)
@@ -41,47 +43,63 @@ class RuleBasedClassifier:
             patterns = raw.get("patterns", {})
         self.patterns = patterns
         self.compiled: Dict[str, dict] = {}
+        self._service_scope: Dict[Tuple[str, str], bool] = {}
         for category, spec in self.patterns.items():
-            regexes = [re.compile(pattern, re.IGNORECASE) for pattern in spec.get("regex", [])]
+            raw_regexes = spec.get("regex", [])
+            combined = (
+                re.compile(
+                    "|".join(f"(?:{pattern})" for pattern in raw_regexes),
+                    re.IGNORECASE,
+                )
+                if raw_regexes
+                else None
+            )
             self.compiled[category] = {
-                "regex": regexes,
+                "combined": combined,
                 "levels": {level.upper() for level in spec.get("levels", [])},
                 "services": spec.get("services", ["*"]),
                 "family": spec.get("family", "UNKNOWN"),
                 "description": spec.get("description", ""),
             }
 
+    def _service_in_scope(self, category: str, service: str) -> bool:
+        key = (category, service)
+        cached = self._service_scope.get(key)
+        if cached is None:
+            cached = any(
+                fnmatch(service, pattern) or pattern == "*"
+                for pattern in self.compiled[category]["services"]
+            )
+            self._service_scope[key] = cached
+        return cached
+
     def classify(self, entry: LogEntry) -> Optional[ErrorEvent]:
         best: Optional[Tuple[float, str, str]] = None
         best_reason = ""
 
         for category, spec in self.compiled.items():
-            if not spec["levels"]:
-                level_ok = True
-            else:
-                level_ok = entry.level in spec["levels"]
-            service_ok = any(
-                fnmatch(entry.service, pattern) or pattern == "*"
-                for pattern in spec["services"]
-            )
-            for regex in spec["regex"]:
-                match = regex.search(entry.message)
-                if not match:
-                    continue
-                score = 0.68
-                reasons = [f"matched '{match.group(0)}'"]
-                if level_ok:
-                    score += 0.10
-                    reasons.append(f"level {entry.level} fits")
-                if service_ok:
-                    score += 0.10
-                    reasons.append(f"service {entry.service} is in scope")
-                specificity = len(match.group(0)) / max(len(entry.message), 1)
-                score += min(specificity, 0.10)
-                score = min(score, 0.98)
-                if best is None or score > best[0]:
-                    best = (score, category, match.group(0))
-                    best_reason = "; ".join(reasons)
+            matcher = spec["combined"]
+            if matcher is None:
+                continue
+            match = matcher.search(entry.message)
+            if not match:
+                continue
+            level_ok = not spec["levels"] or entry.level in spec["levels"]
+            service_ok = self._service_in_scope(category, entry.service)
+            score = 0.68
+            reasons = [f"matched '{match.group(0)}'"]
+            if level_ok:
+                score += 0.10
+                reasons.append(f"level {entry.level} fits")
+            if service_ok:
+                score += 0.10
+                reasons.append(f"service {entry.service} is in scope")
+            specificity = len(match.group(0)) / max(len(entry.message), 1)
+            score += min(specificity, 0.10)
+            score = min(score, 0.98)
+            if best is None or score > best[0]:
+                best = (score, category, match.group(0))
+                best_reason = "; ".join(reasons)
 
         if best is None:
             if entry.is_error:
