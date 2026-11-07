@@ -1,0 +1,47 @@
+# A tiny changelog that lets the agent answer "what changed?".
+changes:
+  - id: "chg-20261107-001"
+    timestamp: "2026-11-07 19:52:10"
+    type: deploy
+    service: checkout-api
+    description: "Deploy checkout-api v2.14.0: reduce DB connection pool max from 40 to 8 to save memory"
+    author: "Priya (Commerce team)"
+    environment: production
+    rollback: "kubectl rollout undo deployment/checkout-api"
+    metadata:
+      version: "v2.14.0"
+      previous_version: "v2.13.3"
+      diff: "DB_POOL_MAX 40 -> 8"
+
+  - id: "chg-20261107-002"
+    timestamp: "2026-11-07 19:40:00"
+    type: deploy
+    service: catalog-service
+    description: "Deploy catalog-service v5.2.1: update product image CDN hostname"
+    author: "Ravi (Commerce team)"
+    environment: production
+    rollback: "kubectl rollout undo deployment/catalog-service"
+    metadata:
+      version: "v5.2.1"
+
+  - id: "chg-20261107-003"
+    timestamp: "2026-11-07 18:30:00"
+    type: config
+    service: auth-service
+    description: "Rotate JWT signing key and reload auth-service"
+    author: "Mei (Platform team)"
+    environment: production
+    rollback: "restore previous signing key from secrets manager"
+    metadata:
+      key_id: "jwt-2026-11"
+
+  - id: "chg-20261107-004"
+    timestamp: "2026-11-07 17:05:00"
+    type: config
+    service: notification-worker
+    description: "Increase notification worker retry limit from 3 to 5"
+    author: "Mei (Platform team)"
+    environment: production
+    rollback: "set retry_limit back to 3"
+    metadata:
+      retry_limit: 5

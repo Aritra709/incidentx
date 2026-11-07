@@ -1,0 +1,50 @@
+# Human-readable catalogue used by the reporter when explaining errors.
+errors:
+  DATABASE_CONNECTION:
+    plain_name: "database connection failure"
+    customer_symptom: "customers cannot complete actions that need saved data"
+  CONNECTION_POOL_EXHAUSTED:
+    plain_name: "database connection pool exhaustion"
+    customer_symptom: "checkout and saved-data actions slow down or fail"
+  API_TIMEOUT:
+    plain_name: "slow or timed-out service call"
+    customer_symptom: "pages or actions take too long and may fail"
+  SERVICE_UNAVAILABLE:
+    plain_name: "service outage"
+    customer_symptom: "parts of the site return errors"
+  MESSAGE_QUEUE_BACKUP:
+    plain_name: "delayed background processing"
+    customer_symptom: "confirmations and receipts arrive late"
+  QUERY_FAILED:
+    plain_name: "failed database query"
+    customer_symptom: "some data may not load"
+  DISK_FULL:
+    plain_name: "disk space exhaustion"
+    customer_symptom: "the service may stop accepting new work"
+  MEMORY_EXHAUSTION:
+    plain_name: "out-of-memory condition"
+    customer_symptom: "the service may restart or fail requests"
+  OOM_KILLER:
+    plain_name: "process killed for using too much memory"
+    customer_symptom: "the service may restart unexpectedly"
+  AUTH_FAILURE:
+    plain_name: "authentication failure"
+    customer_symptom: "customers may be unable to log in"
+  RATE_LIMIT:
+    plain_name: "rate limiting"
+    customer_symptom: "some requests are rejected during high traffic"
+  EXTERNAL_API_DOWN:
+    plain_name: "external provider outage"
+    customer_symptom: "payments or other integrated features may fail"
+  THIRD_PARTY_TIMEOUT:
+    plain_name: "external provider timeout"
+    customer_symptom: "integrated features are slow or unavailable"
+  UNHANDLED_EXCEPTION:
+    plain_name: "application error"
+    customer_symptom: "specific actions return errors"
+  VALIDATION_ERROR:
+    plain_name: "request validation failure"
+    customer_symptom: "some actions are rejected"
+  UNKNOWN:
+    plain_name: "unclassified error"
+    customer_symptom: "some actions may fail"

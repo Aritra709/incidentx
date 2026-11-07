@@ -1,0 +1,80 @@
+# Known cause -> effect chains. The correlator uses these to pick a likely
+# root error inside a cluster and to explain cascades.
+causal_chains:
+  - name: "database_down_cascades"
+    primary: DATABASE_CONNECTION
+    secondary:
+      - CONNECTION_POOL_EXHAUSTED
+      - QUERY_FAILED
+      - API_TIMEOUT
+      - SERVICE_UNAVAILABLE
+    time_window_minutes: 10
+    confidence: 0.9
+
+  - name: "pool_exhaustion_cascades"
+    primary: CONNECTION_POOL_EXHAUSTED
+    secondary:
+      - API_TIMEOUT
+      - SERVICE_UNAVAILABLE
+      - MESSAGE_QUEUE_BACKUP
+    time_window_minutes: 10
+    confidence: 0.88
+
+  - name: "network_issues_cascade"
+    primary: NETWORK_TIMEOUT
+    secondary:
+      - SERVICE_UNAVAILABLE
+      - API_TIMEOUT
+      - THIRD_PARTY_TIMEOUT
+    time_window_minutes: 5
+    confidence: 0.85
+
+  - name: "disk_full_cascades"
+    primary: DISK_FULL
+    secondary:
+      - LOG_WRITE_FAILURE
+      - CACHE_WRITE_FAILURE
+      - BACKUP_FAILURE
+      - SERVICE_CRASH
+    time_window_minutes: 15
+    confidence: 0.95
+
+  - name: "memory_exhaustion_cascades"
+    primary: MEMORY_EXHAUSTION
+    secondary:
+      - OOM_KILLER
+      - GC_OVERHEAD
+      - SERVICE_CRASH
+      - API_TIMEOUT
+    time_window_minutes: 15
+    confidence: 0.9
+
+  - name: "auth_failure_spike"
+    primary: AUTH_FAILURE
+    secondary:
+      - BRUTE_FORCE
+      - ACCOUNT_LOCKOUT
+      - UNAUTHORIZED_ACCESS
+    time_window_minutes: 10
+    confidence: 0.82
+
+  - name: "dependency_outage_cascades"
+    primary: EXTERNAL_API_DOWN
+    secondary:
+      - THIRD_PARTY_TIMEOUT
+      - API_TIMEOUT
+      - SERVICE_UNAVAILABLE
+      - MESSAGE_QUEUE_BACKUP
+    time_window_minutes: 10
+    confidence: 0.8
+
+# Which service boundary labels a cascade. The value is looked up in the
+# service catalog to find downstream dependents for the blast-radius map.
+cascade_roots:
+  DATABASE_CONNECTION: DATABASE_CONNECTION
+  CONNECTION_POOL_EXHAUSTED: CONNECTION_POOL_EXHAUSTED
+  NETWORK_TIMEOUT: NETWORK_TIMEOUT
+  DISK_FULL: DISK_FULL
+  MEMORY_EXHAUSTION: MEMORY_EXHAUSTION
+  AUTH_FAILURE: AUTH_FAILURE
+  EXTERNAL_API_DOWN: EXTERNAL_API_DOWN

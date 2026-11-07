@@ -1,0 +1,302 @@
+# IncidentX error signatures. Rules are the fast path; unknown errors are
+# escalated to the optional LLM reasoning layer.
+patterns:
+  DATABASE_CONNECTION:
+    family: INFRASTRUCTURE
+    description: "The application cannot reach its database."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "connection refused"
+      - "could not connect to (the )?database"
+      - "failed to connect to (the )?database"
+      - "database .* unavailable"
+      - "database connection .* (failed|timeout|timed out)"
+      - "database connection (failed|timeout|timed out)"
+      - "dial tcp .*:(5432|3306|27017)"
+      - "cannot connect to (postgres|mysql|mongodb)"
+
+  CONNECTION_POOL_EXHAUSTED:
+    family: INFRASTRUCTURE
+    description: "The database connection pool is full, so requests wait or fail."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "connection pool exhausted"
+      - "connection pool usage at 100"
+      - "could not acquire connection from (the )?pool"
+      - "pool exhausted"
+      - "too many connections"
+      - "connection pool .* (full|max|limit)"
+      - "waiting=\\d+"
+
+  QUERY_FAILED:
+    family: INFRASTRUCTURE
+    description: "A database query failed."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "query failed"
+      - "failed to execute query"
+      - "sql error"
+      - "deadlock detected"
+
+  NETWORK_TIMEOUT:
+    family: INFRASTRUCTURE
+    description: "A network call exceeded its deadline."
+    levels: [ERROR, WARN, CRITICAL]
+    regex:
+      - "network timeout"
+      - "i/o timeout"
+      - "connection timed out"
+      - "connection timeout"
+      - "no route to host"
+
+  API_TIMEOUT:
+    family: DEPENDENCY
+    description: "A request to a service or API timed out."
+    levels: [ERROR, WARN]
+    regex:
+      - "(upstream )?request (timed out|timeout)"
+      - "upstream .* timeout"
+      - "timed out after \\d+ ?ms"
+      - "timeout after \\d+ ?ms"
+      - "deadline exceeded"
+
+  DISK_FULL:
+    family: INFRASTRUCTURE
+    description: "A disk or volume is out of space."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "no space left on device"
+      - "disk full"
+      - "insufficient disk space"
+      - "filesystem .* full"
+
+  MEMORY_EXHAUSTION:
+    family: INFRASTRUCTURE
+    description: "The process or host ran out of memory."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "out of memory"
+      - "\\boom\\b"
+      - "outofmemoryerror"
+      - "memory limit exceeded"
+      - "cannot allocate memory"
+
+  CPU_THROTTLING:
+    family: INFRASTRUCTURE
+    description: "CPU is saturated or the process is being throttled."
+    levels: [WARN, ERROR]
+    regex:
+      - "cpu throttl"
+      - "high cpu"
+      - "load average .* (high|critical)"
+
+  OOM_KILLER:
+    family: INFRASTRUCTURE
+    description: "The kernel OOM killer terminated a process."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "oom killer"
+      - "oom-kill"
+      - "killed process .* memory"
+
+  NULL_POINTER:
+    family: APPLICATION
+    description: "The code dereferenced an empty value."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "nullpointerexception"
+      - "null pointer"
+      - "nil pointer"
+      - "attributeerror.*none"
+
+  UNHANDLED_EXCEPTION:
+    family: APPLICATION
+    description: "An exception escaped the application's error handling."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "unhandled exception"
+      - "uncaught exception"
+      - "\\btraceback\\b"
+      - "panic:"
+      - "segmentation fault"
+
+  VALIDATION_ERROR:
+    family: APPLICATION
+    description: "A request failed input validation."
+    levels: [WARN, ERROR]
+    regex:
+      - "validation error"
+      - "invalid request"
+      - "schema validation"
+      - "400 bad request"
+
+  AUTH_FAILURE:
+    family: APPLICATION
+    description: "Authentication failed."
+    levels: [WARN, ERROR]
+    regex:
+      - "authentication failed"
+      - "invalid credentials"
+      - "unauthorized"
+      - "\\b401\\b"
+
+  RATE_LIMIT:
+    family: APPLICATION
+    description: "A client or dependency hit a rate limit."
+    levels: [WARN, ERROR]
+    regex:
+      - "rate limit"
+      - "too many requests"
+      - "\\b429\\b"
+
+  EXTERNAL_API_DOWN:
+    family: DEPENDENCY
+    description: "A third-party or external API is unavailable."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "external api .* (down|unavailable)"
+      - "third.party .* unavailable"
+      - "payment provider .* unavailable"
+
+  THIRD_PARTY_TIMEOUT:
+    family: DEPENDENCY
+    description: "A third-party API call timed out."
+    levels: [ERROR, WARN]
+    regex:
+      - "third.party .* (timeout|timed out)"
+      - "external .* (timeout|timed out)"
+
+  MESSAGE_QUEUE_BACKUP:
+    family: DEPENDENCY
+    description: "A message queue is backlogged."
+    levels: [WARN, ERROR]
+    regex:
+      - "queue backlog"
+      - "message backlog"
+      - "consumer lag"
+      - "queue depth .*high"
+
+  SERVICE_UNAVAILABLE:
+    family: DEPENDENCY
+    description: "A downstream or upstream service is unavailable."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "service unavailable"
+      - "upstream .* unavailable"
+      - "\\b50[234]\\b"
+      - "bad gateway"
+      - "connection reset by peer"
+      - "circuit breaker (open|tripped)"
+
+  MISSING_CONFIG:
+    family: CONFIGURATION
+    description: "Required configuration is missing."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "missing config"
+      - "config .* not found"
+      - "environment variable .* not set"
+
+  INVALID_CONFIG:
+    family: CONFIGURATION
+    description: "Configuration is invalid."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "invalid config"
+      - "configuration error"
+      - "bad configuration"
+
+  FEATURE_FLAG_ERROR:
+    family: CONFIGURATION
+    description: "A feature flag could not be evaluated."
+    levels: [WARN, ERROR]
+    regex:
+      - "feature flag .* (error|missing)"
+      - "unknown feature flag"
+
+  UNAUTHORIZED_ACCESS:
+    family: SECURITY
+    description: "An unauthorized access attempt was observed."
+    levels: [WARN, ERROR]
+    regex:
+      - "unauthorized access"
+      - "forbidden"
+      - "\\b403\\b"
+
+  INJECTION_ATTEMPT:
+    family: SECURITY
+    description: "A possible injection attempt was detected."
+    levels: [WARN, ERROR, CRITICAL]
+    regex:
+      - "sql injection"
+      - "script injection"
+      - "injection attempt"
+      - "\\bxss\\b"
+
+  BRUTE_FORCE:
+    family: SECURITY
+    description: "Repeated failed logins suggest a brute-force attempt."
+    levels: [WARN, ERROR]
+    regex:
+      - "brute force"
+      - "multiple failed login"
+      - "repeated login failures"
+
+  CERTIFICATE_EXPIRED:
+    family: SECURITY
+    description: "A TLS certificate has expired."
+    levels: [WARN, ERROR, CRITICAL]
+    regex:
+      - "certificate (has )?expired"
+      - "tls .* expired"
+      - "ssl .* expired"
+
+  LOG_WRITE_FAILURE:
+    family: INFRASTRUCTURE
+    description: "Logs could not be written."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "failed to write log"
+      - "log write failed"
+
+  CACHE_WRITE_FAILURE:
+    family: INFRASTRUCTURE
+    description: "The cache could not be written."
+    levels: [WARN, ERROR]
+    regex:
+      - "cache write failed"
+      - "redis .* write .* fail"
+
+  BACKUP_FAILURE:
+    family: INFRASTRUCTURE
+    description: "A backup job failed."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "backup failed"
+      - "backup .* failure"
+
+  SERVICE_CRASH:
+    family: APPLICATION
+    description: "A service process crashed or restarted unexpectedly."
+    levels: [ERROR, CRITICAL, FATAL]
+    regex:
+      - "service crashed"
+      - "crashloopbackoff"
+      - "exited with code 1"
+      - "process exited unexpectedly"
+
+  DEPLOY_FAILURE:
+    family: CONFIGURATION
+    description: "A deployment or rollout failed."
+    levels: [ERROR, CRITICAL]
+    regex:
+      - "deployment .* failed"
+      - "rollout .* failed"
+      - "deploy .* failed"
+
+# Generic hints used when an ERROR/WARN line matches no rule above.
+fallback_categories:
+  ERROR: UNKNOWN
+  CRITICAL: UNKNOWN
+  FATAL: UNKNOWN
+  WARN: UNKNOWN

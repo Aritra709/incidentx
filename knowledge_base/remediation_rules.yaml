@@ -1,0 +1,224 @@
+# Pattern -> remediation mapping. Actions may be plain strings or mappings:
+#   - action: "..."
+#     automated: true
+#     command: "..."
+#     requires_approval: true
+# Nothing here is executed automatically. Commands are shown to the engineer
+# and, when approval-gated, can be dry-run in the UI.
+rules:
+  DATABASE_CONNECTION:
+    escalation: "Database owner / founder"
+    runbook: "database_connection.md"
+    immediate:
+      - action: "Check whether the database server is running"
+        command: "systemctl status postgresql"
+        automated: true
+      - action: "Verify network reachability from the failing service"
+        command: "nc -zv payments-db 5432"
+        automated: true
+      - action: "Check database logs for startup or crash errors"
+        command: "journalctl -u postgresql --since '15 min ago'"
+        automated: true
+    investigation:
+      - action: "Compare database connection metrics with the previous hour"
+      - action: "Check for recent deploy or config changes that touch connection settings"
+      - action: "Look for connection leaks in the failing service"
+    resolution:
+      - action: "Restart the database service if it is stopped"
+        command: "systemctl restart postgresql"
+        requires_approval: true
+      - action: "Roll back the most recent connection-related change"
+        requires_approval: true
+      - action: "Increase max_connections only after confirming available memory"
+        requires_approval: true
+    prevention:
+      - "Add a database health check to the load balancer."
+      - "Alert when connection pool utilisation stays above 80% for five minutes."
+      - "Implement circuit breakers for database-backed endpoints."
+
+  CONNECTION_POOL_EXHAUSTED:
+    escalation: "Service owner"
+    runbook: "connection_pool_exhausted.md"
+    immediate:
+      - action: "Confirm pool size and waiting request count"
+        command: "curl -s localhost:8080/metrics | grep connection_pool"
+        automated: true
+      - action: "Check the last deploy or config change for pool-size edits"
+        automated: true
+      - action: "Add temporary application replicas to raise total pool capacity"
+        requires_approval: true
+    investigation:
+      - action: "Measure peak concurrent requests against pool size"
+      - action: "Look for slow queries holding connections"
+      - action: "Check for connection leaks (borrowed but never returned)"
+    resolution:
+      - action: "Roll back the pool-size change"
+        requires_approval: true
+      - action: "Restore the previous max connections value"
+        requires_approval: true
+      - action: "Switch to request-scoped connection handling"
+    prevention:
+      - "Load-test with production peak concurrency before changing pool sizes."
+      - "Alert on pool wait time, not just failure count."
+      - "Keep pool size changes behind a reviewed config change."
+
+  SERVICE_UNAVAILABLE:
+    escalation: "Service owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Confirm the upstream service is running and healthy"
+        automated: true
+      - action: "Check load balancer and DNS health"
+        automated: true
+      - action: "Check for recent changes to the upstream service"
+        automated: true
+    investigation:
+      - action: "Identify whether failures are timeouts, 5xx responses, or refused connections"
+      - action: "Check retry and circuit-breaker behaviour"
+    resolution:
+      - action: "Restart or redeploy the unhealthy upstream service"
+        requires_approval: true
+      - action: "Roll back the most recent upstream change"
+        requires_approval: true
+    prevention:
+      - "Add upstream health checks and automatic failover."
+      - "Add circuit breakers with bounded retries."
+
+  API_TIMEOUT:
+    escalation: "Service owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Identify which upstream call is timing out"
+        automated: true
+      - action: "Check upstream latency and error rate"
+        automated: true
+    investigation:
+      - action: "Compare p50/p95/p99 latency to the previous hour"
+      - action: "Check for recent deploys or traffic spikes"
+    resolution:
+      - action: "Roll back the change that increased latency"
+        requires_approval: true
+      - action: "Raise timeouts only after confirming downstream capacity"
+        requires_approval: true
+    prevention:
+      - "Add per-dependency latency alerts."
+      - "Load-test peak traffic before sale events."
+
+  MESSAGE_QUEUE_BACKUP:
+    escalation: "Platform owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Check queue depth and consumer health"
+        automated: true
+      - action: "Check whether downstream consumers are failing"
+        automated: true
+    investigation:
+      - action: "Compare arrival rate with consumption rate"
+      - action: "Look for poison messages or repeated retries"
+    resolution:
+      - action: "Scale consumers"
+        requires_approval: true
+      - action: "Replay or drain the backlog once consumers are healthy"
+        requires_approval: true
+    prevention:
+      - "Alert on sustained consumer lag."
+      - "Add dead-letter queues with alerting."
+
+  DISK_FULL:
+    escalation: "Infrastructure owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Identify the full volume"
+        command: "df -h"
+        automated: true
+      - action: "Find the largest recent files"
+        command: "du -xh /var | sort -rh | head -20"
+        automated: true
+    investigation:
+      - action: "Check log rotation and retention settings"
+      - action: "Check for runaway log or temp files"
+    resolution:
+      - action: "Remove safe-to-delete temporary files"
+        requires_approval: true
+      - action: "Expand the volume"
+        requires_approval: true
+    prevention:
+      - "Alert at 80% disk utilisation."
+      - "Enforce log rotation and retention."
+
+  MEMORY_EXHAUSTION:
+    escalation: "Service owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Check pod/container memory usage and restarts"
+        automated: true
+    investigation:
+      - action: "Look for memory growth correlated with traffic"
+      - action: "Check for recent deploys or cache-size changes"
+    resolution:
+      - action: "Raise memory limits"
+        requires_approval: true
+      - action: "Roll back the change that introduced the leak"
+        requires_approval: true
+    prevention:
+      - "Add memory-growth alerts."
+      - "Profile memory under production-like load."
+
+  AUTH_FAILURE:
+    escalation: "Security owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Check whether failures affect one account or all accounts"
+        automated: true
+      - action: "Check auth provider status"
+        automated: true
+      - action: "Check for a recent credentials or certificate change"
+        automated: true
+    investigation:
+      - action: "Look for a spike from a single IP or user agent"
+      - action: "Verify token signing key rotation timing"
+    resolution:
+      - action: "Roll back the auth config change"
+        requires_approval: true
+      - action: "Block abusive source addresses"
+        requires_approval: true
+    prevention:
+      - "Alert on authentication failure-rate spikes."
+      - "Stage credential rotations with a rollback plan."
+
+  EXTERNAL_API_DOWN:
+    escalation: "Vendor contact / founder"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Check the vendor status page"
+        automated: true
+      - action: "Confirm the failure is vendor-side, not local DNS or credentials"
+        automated: true
+    investigation:
+      - action: "Measure affected transaction volume"
+    resolution:
+      - action: "Enable the pre-built fallback path"
+        requires_approval: true
+      - action: "Queue failed work for replay"
+        requires_approval: true
+    prevention:
+      - "Add vendor status monitoring."
+      - "Keep a tested fallback path for critical vendors."
+
+  DEFAULT:
+    escalation: "Service owner"
+    runbook: "service_unavailable.md"
+    immediate:
+      - action: "Confirm the failing service and first error time"
+        automated: true
+      - action: "Check the last deploy or config change"
+        automated: true
+    investigation:
+      - action: "Correlate the failure with recent changes"
+      - action: "Check resource metrics for the affected services"
+    resolution:
+      - action: "Roll back the most recent change if it matches the failure"
+        requires_approval: true
+    prevention:
+      - "Add alerts for this error signature."
+      - "Add this incident to the knowledge base once resolved."

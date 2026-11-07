@@ -1,0 +1,64 @@
+# The user states once what matters to the business. Severity is then
+# evaluated against this profile instead of a generic matrix.
+company: "Acme Shop"
+timezone: "local"
+description: "Small e-commerce team. No on-call engineer. Checkout and login directly earn money."
+
+# Services that directly generate revenue.
+revenue_services:
+  - checkout-api
+  - payments-api
+
+# Services whose outage is treated as business critical even outside a sale.
+critical_services:
+  - checkout-api
+  - payments-api
+  - web-frontend
+  - auth-service
+
+# Services customers interact with directly.
+user_facing_services:
+  - web-frontend
+  - checkout-api
+  - mobile-app
+
+# Services that hold money or order data.
+data_loss_risk_services:
+  - payments-db
+  - orders-db
+
+# Time windows where the business impact is amplified.
+revenue_windows:
+  - name: "Saturday flash sale"
+    days: [sat]
+    start: "20:00"
+    end: "22:00"
+    description: "Live flash sale. Every minute of checkout downtime costs revenue."
+    severity_floor: 82
+  - name: "Weekday business hours"
+    days: [mon, tue, wed, thu, fri]
+    start: "09:00"
+    end: "18:00"
+    description: "Normal trading hours. Customer-facing failures matter more."
+    severity_floor: 60
+
+# Severity scoring weights (must sum to 1.0).
+weights:
+  scope: 0.25
+  error_rate: 0.20
+  business_criticality: 0.25
+  revenue_window: 0.20
+  blast_radius: 0.05
+  data_loss: 0.05
+
+severity_thresholds:
+  LOW: 0
+  MEDIUM: 30
+  HIGH: 60
+  CRITICAL: 80
+
+# Business-aware overrides.
+rules:
+  revenue_service_in_window: "CRITICAL"
+  revenue_service_outside_window: "MEDIUM"
+  data_loss_risk: "HIGH"

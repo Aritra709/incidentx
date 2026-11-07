@@ -1,0 +1,130 @@
+# Service catalog: ownership, criticality, and the dependency graph used for
+# cascade visuals and blast-radius scoring.
+services:
+  web-frontend:
+    name: "Web storefront"
+    tier: critical
+    owner: "Frontend team"
+    user_facing: true
+    description: "Customer-facing web app."
+    depends_on: [checkout-api, catalog-service, auth-service]
+
+  mobile-app:
+    name: "Mobile storefront"
+    tier: critical
+    owner: "Mobile team"
+    user_facing: true
+    description: "iOS and Android apps."
+    depends_on: [checkout-api, catalog-service, auth-service]
+
+  checkout-api:
+    name: "Checkout API"
+    tier: revenue-critical
+    owner: "Commerce team"
+    user_facing: true
+    description: "Cart validation, order creation, payment orchestration."
+    depends_on: [payments-api, inventory-service, auth-service, payments-db]
+
+  payments-api:
+    name: "Payments API"
+    tier: revenue-critical
+    owner: "Payments team"
+    user_facing: false
+    description: "Talks to the payment processor and records transactions."
+    depends_on: [payments-db, payment-processor]
+
+  auth-service:
+    name: "Auth service"
+    tier: critical
+    owner: "Platform team"
+    user_facing: false
+    description: "Login, sessions, JWT issuance."
+    depends_on: [auth-db]
+
+  catalog-service:
+    name: "Catalog service"
+    tier: important
+    owner: "Commerce team"
+    user_facing: true
+    description: "Product listings, prices, and inventory display."
+    depends_on: [catalog-db]
+
+  inventory-service:
+    name: "Inventory service"
+    tier: important
+    owner: "Operations team"
+    user_facing: false
+    description: "Reserves stock during checkout."
+    depends_on: [inventory-db]
+
+  notification-worker:
+    name: "Notification worker"
+    tier: standard
+    owner: "Platform team"
+    user_facing: false
+    description: "Sends order confirmations and payment receipts."
+    depends_on: [notification-queue, payments-api]
+
+  admin-dashboard:
+    name: "Admin dashboard"
+    tier: internal
+    owner: "Operations team"
+    user_facing: false
+    description: "Internal order and inventory console."
+    depends_on: [orders-db, catalog-service]
+
+  payments-db:
+    name: "Payments database"
+    tier: critical
+    owner: "Payments team"
+    user_facing: false
+    description: "PostgreSQL cluster holding payment records."
+    depends_on: []
+
+  orders-db:
+    name: "Orders database"
+    tier: critical
+    owner: "Commerce team"
+    user_facing: false
+    description: "PostgreSQL cluster holding orders."
+    depends_on: []
+
+  auth-db:
+    name: "Auth database"
+    tier: critical
+    owner: "Platform team"
+    user_facing: false
+    description: "User and session store."
+    depends_on: []
+
+  catalog-db:
+    name: "Catalog database"
+    tier: important
+    owner: "Commerce team"
+    user_facing: false
+    description: "Product catalog store."
+    depends_on: []
+
+  inventory-db:
+    name: "Inventory database"
+    tier: important
+    owner: "Operations team"
+    user_facing: false
+    description: "Stock levels."
+    depends_on: []
+
+  payment-processor:
+    name: "Payment processor"
+    tier: critical
+    owner: "Payments team"
+    user_facing: false
+    description: "External card processor."
+    depends_on: []
+
+  notification-queue:
+    name: "Notification queue"
+    tier: standard
+    owner: "Platform team"
+    user_facing: false
+    description: "Redis-backed job queue."
+    depends_on: []

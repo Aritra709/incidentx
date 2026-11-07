@@ -1,0 +1,36 @@
+[
+  {
+    "incident_id": "INC-20261024-001",
+    "timestamp": "2026-10-24T21:10:00",
+    "title": "Checkout outage after connection pool config change",
+    "signatures": [
+      "failed to connect to database connection refused",
+      "could not acquire connection from pool connection pool exhausted"
+    ],
+    "categories": ["DATABASE_CONNECTION", "CONNECTION_POOL_EXHAUSTED"],
+    "services": ["checkout-api", "web-frontend", "notification-worker"],
+    "severity": "HIGH",
+    "root_cause": "A deploy reduced the checkout-api connection pool below peak sale traffic.",
+    "resolution": [
+      "Rolled back checkout-api to v2.13.3",
+      "Restored DB_POOL_MAX to 40",
+      "Added pool-wait-time alert"
+    ],
+    "status": "resolved"
+  },
+  {
+    "incident_id": "INC-20261009-002",
+    "timestamp": "2026-10-09T14:20:00",
+    "title": "Catalog images failing after CDN change",
+    "signatures": [
+      "external api down cdn hostname",
+      "service unavailable for product images"
+    ],
+    "categories": ["EXTERNAL_API_DOWN", "SERVICE_UNAVAILABLE"],
+    "services": ["catalog-service", "web-frontend"],
+    "severity": "MEDIUM",
+    "root_cause": "A catalog deploy pointed at a CDN hostname with an expired certificate.",
+    "resolution": ["Reverted CDN hostname", "Renewed certificate"],
+    "status": "resolved"
+  }
+]

@@ -1,0 +1,30 @@
+﻿2026-11-07 19:51:50 INFO  [web-frontend] Traffic ramping up for the 8 PM flash sale (1200 req/min)
+2026-11-07 19:52:10 INFO  [checkout-api] Deployment checkout-api v2.14.0 completed (pool_max_connections=8)
+2026-11-07 19:52:11 INFO  [checkout-api] Health check OK on port 8080
+2026-11-07 19:54:58 WARN  [checkout-api] Database connection pool usage at 100% (in_use=8, waiting=12)
+2026-11-07 19:55:02 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8)
+2026-11-07 19:55:03 ERROR [checkout-api] Database connection timeout after 3000ms
+2026-11-07 19:55:04 WARN  [web-frontend] Checkout request failed: upstream timeout after 5000ms
+2026-11-07 19:55:15 ERROR [web-frontend] 503 Service Unavailable for POST /checkout
+2026-11-07 19:55:44 ERROR [checkout-api] Database connection timeout after 3000ms
+2026-11-07 19:56:02 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8)
+2026-11-07 19:56:44 WARN  [notification-worker] payment confirmation delayed: queue backlog 340
+2026-11-07 19:57:10 ERROR [checkout-api] Database connection timeout after 3000ms
+2026-11-07 19:58:01 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms
+2026-11-07 19:58:23 WARN  [checkout-api] Request latency p99 at 7200ms (threshold 1500ms)
+2026-11-07 19:59:03 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=26)
+2026-11-07 19:59:41 ERROR [web-frontend] 503 Service Unavailable for POST /checkout
+2026-11-07 20:00:02 WARN  [web-frontend] Flash sale started: traffic 3200 req/min
+2026-11-07 20:00:05 ERROR [checkout-api] Database connection timeout after 3000ms
+2026-11-07 20:00:06 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=37)
+2026-11-07 20:00:08 ERROR [web-frontend] 503 Service Unavailable for POST /checkout
+2026-11-07 20:00:10 WARN  [notification-worker] payment confirmation delayed: queue backlog 1200
+2026-11-07 20:00:44 ERROR [checkout-api] Database connection timeout after 3000ms
+2026-11-07 20:01:12 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=51)
+2026-11-07 20:01:13 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms
+2026-11-07 20:01:47 ERROR [web-frontend] 503 Service Unavailable for POST /checkout
+2026-11-07 20:02:03 ERROR [checkout-api] Database connection timeout after 3000ms
+2026-11-07 20:02:30 WARN  [notification-worker] queue backlog 2400; order confirmations delayed
+2026-11-07 20:02:58 ERROR [checkout-api] Could not acquire connection from pool: connection pool exhausted (max=8, waiting=64)
+2026-11-07 20:03:11 ERROR [web-frontend] Checkout request failed: upstream timeout after 5000ms
+
