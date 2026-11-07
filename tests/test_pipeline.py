@@ -71,6 +71,16 @@ def test_result_reports_llm_off_when_request_disables_it(pipeline):
     assert result.llm_available is False
 
 
+def test_html_export_escapes_untrusted_text(pipeline):
+    report = run_demo(pipeline).incidents[0]
+    report.title = "<script>alert(1)</script>"
+
+    document = pipeline.reporter.export_html(report)
+
+    assert "<script>alert(1)</script>" not in document
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in document
+
+
 def test_reports_written(pipeline, tmp_path):
     result = run_demo(pipeline)
     output = tmp_path / "reports"
