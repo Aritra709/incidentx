@@ -121,3 +121,54 @@ def test_hybrid_caps_llm_classification_attempts():
     assert len(events) == 10
     assert any("capped at 8" in warning for warning in warnings)
     assert events[-1].category == "UNKNOWN"
+
+
+def test_hybrid_honors_per_call_use_llm_flag():
+    fake = FakeReasoner()
+    classifier = HybridClassifier(llm=fake, use_llm=True)
+    entries = [
+        LogEntry(message="novel checkout failure xyz", level="ERROR", service="checkout-api")
+    ]
+
+    events, warnings = classifier.detect_errors(entries, use_llm=False)
+
+    assert not warnings
+    assert fake.calls == 0
+    assert events[0].category == "UNKNOWN"
+
+
+def test_failed_llm_request_trips_circuit_breaker(monkeypatch):
+    calls = {"count": 0}
+
+    def fail(*args, **kwargs):
+        calls["count"] += 1
+        raise RuntimeError("llm down")
+
+    monkeypatch.setattr("incidentx.classifier.llm.requests.post", fail)
+    reasoner = make_reasoner()
+
+    assert reasoner.classify_error("x", "ERROR", "svc", ["API_TIMEOUT"]) is None
+    assert not reasoner.available
+    assert reasoner.classify_error("y", "ERROR", "svc", ["API_TIMEOUT"]) is None
+    assert calls["count"] == 1
+
+
+def test_reset_health_allows_retry(monkeypatch):
+    def fail(*args, **kwargs):
+        raise RuntimeError("llm down")
+
+    monkeypatch.setattr("incidentx.classifier.llm.requests.post", fail)
+    reasoner = make_reasoner()
+    assert reasoner.classify_error("x", "ERROR", "svc", ["API_TIMEOUT"]) is None
+    assert not reasoner.available
+
+    reasoner.reset_health()
+    monkeypatch.setattr(
+        reasoner,
+        "_chat",
+        lambda *args, **kwargs: '{"category":"API_TIMEOUT","confidence":0.7}',
+    )
+    result = reasoner.classify_error("x", "ERROR", "svc", ["API_TIMEOUT"])
+    assert result is not None
+    assert result["category"] == "API_TIMEOUT"
+

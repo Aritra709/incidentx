@@ -26,10 +26,17 @@ class HybridClassifier:
             for category, spec in self.rules.patterns.items()
         }
 
-    def detect_errors(self, entries: List[LogEntry]) -> Tuple[List[ErrorEvent], List[str]]:
+    def detect_errors(
+        self,
+        entries: List[LogEntry],
+        use_llm: Optional[bool] = None,
+    ) -> Tuple[List[ErrorEvent], List[str]]:
         warnings: List[str] = []
         events = self.rules.detect_errors(entries)
-        if not (self.use_llm and self.llm.available):
+        if use_llm is None:
+            use_llm = self.use_llm
+        self.llm.reset_health()
+        if not (use_llm and self.llm.available):
             return events, warnings
 
         allowed = [category for category in self.categories if category != "UNKNOWN"]

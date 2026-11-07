@@ -23,11 +23,15 @@ class LLMReasoner:
         self.settings = settings or llm_settings()
         self.enabled = bool(self.settings.get("enabled"))
         self.used = False
+        self._failed = False
         self._classification_cache: Dict[str, Dict[str, Any]] = {}
 
     @property
     def available(self) -> bool:
-        return self.enabled
+        return self.enabled and not self._failed
+
+    def reset_health(self) -> None:
+        self._failed = False
 
     def _chat(
         self,
@@ -36,7 +40,7 @@ class LLMReasoner:
         max_tokens: int = 300,
         temperature: float = 0.0,
     ) -> Optional[str]:
-        if not self.enabled:
+        if not self.available:
             return None
         url = f"{self.settings['base_url']}/chat/completions"
         headers = {"Content-Type": "application/json"}
@@ -65,7 +69,8 @@ class LLMReasoner:
             self.used = True
             return content.strip()
         except Exception as exc:  # pragma: no cover - depends on external service
-            LOGGER.warning("LLM request failed: %s", exc)
+            self._failed = True
+            LOGGER.warning("LLM request failed; using rules only this run: %s", exc)
             return None
 
     def classify_error(
@@ -75,7 +80,7 @@ class LLMReasoner:
         service: str,
         allowed_categories: List[str],
     ) -> Optional[Dict[str, Any]]:
-        if not self.enabled:
+        if not self.available:
             return None
         cache_key = f"{service}|{level}|{message}"
         if cache_key in self._classification_cache:
@@ -118,7 +123,7 @@ class LLMReasoner:
 
     def explain_incident(self, context: Dict[str, Any]) -> Optional[str]:
         """Return a short, grounded explanation for the engineer report."""
-        if not self.enabled:
+        if not self.available:
             return None
         system = (
             "You are a senior SRE writing for a small team with no on-call engineer. "

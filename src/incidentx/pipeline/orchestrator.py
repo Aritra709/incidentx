@@ -126,8 +126,7 @@ class IncidentXPipeline:
                 "No timestamps were found in the logs; arrival order was used as a timeline."
             )
 
-        self.classifier.use_llm = use_llm
-        errors, classifier_warnings = self.classifier.detect_errors(entries)
+        errors, classifier_warnings = self.classifier.detect_errors(entries, use_llm=use_llm)
         warnings.extend(classifier_warnings)
 
         changes, changes_source = self._load_changes(changes_path, changes_text)
