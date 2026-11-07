@@ -102,7 +102,7 @@ Gemini is selected automatically when `GEMINI_API_KEY` is set. Create a local `.
 Copy-Item .env.example .env
 notepad .env
 # GEMINI_API_KEY=your-key
-# GEMINI_MODEL=gemini-2.5-flash
+# GEMINI_MODEL=gemini-3.6-flash
 incidentx demo
 ```
 
@@ -121,7 +121,7 @@ $env:INCIDENTX_LLM_MODEL = "gpt-4o-mini"
 # $env:OPENAI_BASE_URL = "http://localhost:11434/v1"
 ```
 
-If both keys are present, Gemini wins by default. Set `INCIDENTX_LLM_PROVIDER=gemini` or `INCIDENTX_LLM_PROVIDER=openai` to choose explicitly. Set `INCIDENTX_LLM_ENABLED=false` to force rules-only mode. If an LLM request fails, that run automatically finishes on rules alone instead of retrying the endpoint for every unknown error.
+If both keys are present, Gemini wins by default. Set `INCIDENTX_LLM_PROVIDER=gemini` or `INCIDENTX_LLM_PROVIDER=openai` to choose explicitly. Set `INCIDENTX_LLM_ENABLED=false` to force rules-only mode. If an LLM request fails, that run automatically finishes on rules alone instead of retrying the endpoint for every unknown error. Free-tier Gemini keys can have zero quota for Pro models; use a Flash model or enable billing for Pro.
 
 ## Pipeline
 

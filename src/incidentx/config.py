@@ -64,7 +64,7 @@ def llm_settings() -> Dict[str, Any]:
         model = (
             os.getenv("GEMINI_MODEL", "").strip()
             or os.getenv("INCIDENTX_LLM_MODEL", "").strip()
-            or "gemini-2.5-flash"
+            or "gemini-3.6-flash"
         )
     else:
         api_key = openai_key
